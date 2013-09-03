@@ -9,13 +9,13 @@ CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC
 LD := gcc
 LDFLAGS += -Wall -shared -lasound
 
-SND_PCM_OBJECTS = pcm_equal.o ladspa_utils.o
+SND_PCM_OBJECTS = pcm_iemladspa.o ladspa_utils.o
 SND_PCM_LIBS =
-SND_PCM_BIN = libasound_module_pcm_equal.so
+SND_PCM_BIN = libasound_module_pcm_iemladspa.so
 
-SND_CTL_OBJECTS = ctl_equal.o ladspa_utils.o
+SND_CTL_OBJECTS = ctl_iemladspa.o ladspa_utils.o
 SND_CTL_LIBS =
-SND_CTL_BIN = libasound_module_ctl_equal.so
+SND_CTL_BIN = libasound_module_ctl_iemladspa.so
 
 LIBDIR = lib
 

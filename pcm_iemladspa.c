@@ -27,13 +27,13 @@
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
-typedef struct snd_pcm_equal {
+typedef struct snd_pcm_iemladspa {
 	snd_pcm_extplug_t ext;
 	void *library;
 	const LADSPA_Descriptor *klass;
 	LADSPA_Control *control_data;
 	LADSPA_Handle *channel[];
-} snd_pcm_equal_t;
+} snd_pcm_iemladspa_t;
 
 static inline void interleave(float *src, float *dst, int n, int m)
 {
@@ -55,14 +55,14 @@ static inline void deinterleave(float *src, float *dst, int n, int m)
 	}
 }
 
-static snd_pcm_sframes_t equal_transfer(snd_pcm_extplug_t *ext,
+static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  const snd_pcm_channel_area_t *dst_areas,
 		  snd_pcm_uframes_t dst_offset,
 		  const snd_pcm_channel_area_t *src_areas,
 		  snd_pcm_uframes_t src_offset,
 		  snd_pcm_uframes_t size)
 {
-	snd_pcm_equal_t *equal = (snd_pcm_equal_t *)ext;
+	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
 	float *src, *dst;
 	int j;
 	
@@ -74,82 +74,82 @@ static snd_pcm_sframes_t equal_transfer(snd_pcm_extplug_t *ext,
 	
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
-	deinterleave(src, dst, size, equal->control_data->channels);
+	deinterleave(src, dst, size, iemladspa->control_data->channels);
 	
-	for(j = 0; j < equal->control_data->channels; j++) {
-		equal->klass->connect_port(equal->channel[j],
-			equal->control_data->input_index,
+	for(j = 0; j < iemladspa->control_data->channels; j++) {
+		iemladspa->klass->connect_port(iemladspa->channel[j],
+			iemladspa->control_data->input_index,
 			dst + j*size);
-		equal->klass->connect_port(equal->channel[j],
-			equal->control_data->output_index,
+		iemladspa->klass->connect_port(iemladspa->channel[j],
+			iemladspa->control_data->output_index,
 			src + j*size);
-		equal->klass->run(equal->channel[j], size);
+		iemladspa->klass->run(iemladspa->channel[j], size);
 	}
 	
-	interleave(src, dst, size, equal->control_data->channels);
+	interleave(src, dst, size, iemladspa->control_data->channels);
 
 	return size;
 }
 
-static int equal_close(snd_pcm_extplug_t *ext) {
-	snd_pcm_equal_t *equal = ext->private_data;
+static int iemladspa_close(snd_pcm_extplug_t *ext) {
+	snd_pcm_iemladspa_t *iemladspa = ext->private_data;
 	int i;
-	for (i = 0; i < equal->control_data->channels; i++) {
-		if(equal->klass->deactivate) {
-			equal->klass->deactivate(equal->channel[i]);
+	for (i = 0; i < iemladspa->control_data->channels; i++) {
+		if(iemladspa->klass->deactivate) {
+			iemladspa->klass->deactivate(iemladspa->channel[i]);
 		}
 		/* TODO: Figure out why this segfaults */
-		/* if(equal->klass->cleanup) {
-			equal->klass->cleanup(equal->channel[i]);
+		/* if(iemladspa->klass->cleanup) {
+			iemladspa->klass->cleanup(iemladspa->channel[i]);
 		} */
 	}
-	LADSPAcontrolUnMMAP(equal->control_data);
-	LADSPAunload(equal->library);
-	free(equal);
+	LADSPAcontrolUnMMAP(iemladspa->control_data);
+	LADSPAunload(iemladspa->library);
+	free(iemladspa);
 	return 0;
 }
 
-static int equal_init(snd_pcm_extplug_t *ext)
+static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
-	snd_pcm_equal_t *equal = (snd_pcm_equal_t *)ext;
+	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
 	int i, j;
 
 	/* Instantiate a LADSPA Plugin for each channel */
-	for(i = 0; i < equal->control_data->channels; i++) {
-		equal->channel[i] = equal->klass->instantiate(
-				equal->klass, ext->rate);
-		if(equal->channel[i] == NULL) {
+	for(i = 0; i < iemladspa->control_data->channels; i++) {
+		iemladspa->channel[i] = iemladspa->klass->instantiate(
+				iemladspa->klass, ext->rate);
+		if(iemladspa->channel[i] == NULL) {
 			return -1;
 		}
-		if(equal->klass->activate) {
-			equal->klass->activate(equal->channel[i]);
+		if(iemladspa->klass->activate) {
+			iemladspa->klass->activate(iemladspa->channel[i]);
 		}
 	}
 
 	/* Connect controls to the LADSPA Plugin */
-	for(j = 0; j < equal->control_data->channels; j++) {
-		for(i = 0; i < equal->control_data->num_controls; i++) {
-			equal->klass->connect_port(equal->channel[j], 
-					equal->control_data->control[i].index,
-					&equal->control_data->control[i].data[j]);
+	for(j = 0; j < iemladspa->control_data->channels; j++) {
+		for(i = 0; i < iemladspa->control_data->num_controls; i++) {
+			iemladspa->klass->connect_port(iemladspa->channel[j], 
+					iemladspa->control_data->control[i].index,
+					&iemladspa->control_data->control[i].data[j]);
 		}
 	}
 
 	return 0;
 }
 
-static snd_pcm_extplug_callback_t equal_callback = {
-	.transfer = equal_transfer,
-	.init = equal_init,
-	.close = equal_close,
+static snd_pcm_extplug_callback_t iemladspa_callback = {
+	.transfer = iemladspa_transfer,
+	.init = iemladspa_init,
+	.close = iemladspa_close,
 };
 
-SND_PCM_PLUGIN_DEFINE_FUNC(equal)
+SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 {
 	snd_config_iterator_t i, next;
-	snd_pcm_equal_t *equal;
+	snd_pcm_iemladspa_t *iemladspa;
 	snd_config_t *sconf = NULL;
-	const char *controls = ".alsaequal.bin";
+	const char *controls = ".alsaiemladspa.bin";
 	const char *library = "/usr/lib/ladspa/caps.so";
 	const char *module = "Eq";
 	long channels = 2;
@@ -193,73 +193,73 @@ SND_PCM_PLUGIN_DEFINE_FUNC(equal)
 
 	/* Make sure we have a slave and control devices defined */
 	if (! sconf) {
-		SNDERR("No slave configuration for equal pcm");
+		SNDERR("No slave configuration for iemladspa pcm");
 		return -EINVAL;
 	}
 
 	/* Intialize the local object data */
-	equal = calloc(1, sizeof(*equal) + channels*sizeof(LADSPA_Handle *));
-	if (equal == NULL)
+	iemladspa = calloc(1, sizeof(*iemladspa) + channels*sizeof(LADSPA_Handle *));
+	if (iemladspa == NULL)
 		return -ENOMEM;
 
-	equal->ext.version = SND_PCM_EXTPLUG_VERSION;
-	equal->ext.name = "alsaequal";
-	equal->ext.callback = &equal_callback;
-	equal->ext.private_data = equal;
+	iemladspa->ext.version = SND_PCM_EXTPLUG_VERSION;
+	iemladspa->ext.name = "alsaiemladspa";
+	iemladspa->ext.callback = &iemladspa_callback;
+	iemladspa->ext.private_data = iemladspa;
 
 	/* Open the LADSPA Plugin */
-	equal->library = LADSPAload(library);
-	if(equal->library == NULL) {
+	iemladspa->library = LADSPAload(library);
+	if(iemladspa->library == NULL) {
 		return -1;
 	}
 
-	equal->klass = LADSPAfind(equal->library, library, module);
-	if(equal->klass == NULL) {
+	iemladspa->klass = LADSPAfind(iemladspa->library, library, module);
+	if(iemladspa->klass == NULL) {
 		return -1;
 	}
 
 	/* Create the ALSA External Plugin */
-	err = snd_pcm_extplug_create(&equal->ext, name, root, sconf, stream, mode);
+	err = snd_pcm_extplug_create(&iemladspa->ext, name, root, sconf, stream, mode);
 	if (err < 0) {
 		return err;
 	}
 
 	/* MMAP to the controls file */
-	equal->control_data = LADSPAcontrolMMAP(equal->klass, controls, channels);
-	if(equal->control_data == NULL) {
+	iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, channels);
+	if(iemladspa->control_data == NULL) {
 		return -1;
 	}
 
 	/* Make sure that the control file makes sense */
-	if(equal->klass->PortDescriptors[equal->control_data->input_index] !=
+	if(iemladspa->klass->PortDescriptors[iemladspa->control_data->input_index] !=
 			(LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
 		SNDERR("Problem with control file %s.", controls);
 		return -1;
 	}
-	if(equal->klass->PortDescriptors[equal->control_data->output_index] !=
+	if(iemladspa->klass->PortDescriptors[iemladspa->control_data->output_index] !=
 			(LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
 		SNDERR("Problem with control file %s.", controls);
 		return -1;
 	}
 
 	/* Set PCM Contraints */
-	snd_pcm_extplug_set_param_minmax(&equal->ext,
+	snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_CHANNELS,
-			equal->control_data->channels,
-			equal->control_data->channels);
-	snd_pcm_extplug_set_slave_param(&equal->ext,
+			iemladspa->control_data->channels,
+			iemladspa->control_data->channels);
+	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_CHANNELS,
-			equal->control_data->channels);
-	snd_pcm_extplug_set_param(&equal->ext,
+			iemladspa->control_data->channels);
+	snd_pcm_extplug_set_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
-	snd_pcm_extplug_set_slave_param(&equal->ext,
+	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 
-	*pcmp = equal->ext.pcm;
+	*pcmp = iemladspa->ext.pcm;
 	
 	return 0;
 
 }
 
-SND_PCM_PLUGIN_SYMBOL(equal);
+SND_PCM_PLUGIN_SYMBOL(iemladspa);
 
