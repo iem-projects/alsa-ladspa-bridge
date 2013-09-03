@@ -5,7 +5,7 @@ Q	?= @
 
 # Build Tools
 CC 	:= gcc
-CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC
+CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC -O0 -g
 LD := gcc
 LDFLAGS += -Wall -shared -lasound
 
@@ -55,4 +55,4 @@ uninstall:
 	@echo Un-installing...
 	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_PCM_BIN)
 	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_CTL_BIN)
-	
+
