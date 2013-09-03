@@ -86,8 +86,8 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 	int j;
   const unsigned long offset_in = iemladspa->control_data->num_controls;
   const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
+  const int channels = iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels;
 
-	
 	/* Calculate buffer locations */
 	src = (float*)(src_areas->addr +
 			(src_areas->first + src_areas->step * src_offset)/8);
@@ -101,31 +101,25 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
-	deinterleave(src, dst, size, iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels);
+  deinterleave(src, dst, size, channels);
 
-#if 0
+
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
     printf("connect  inport %d to %p\n", iemladspa->control_data->data[offset_in + j].index,  dst + j*size);
-  }
-	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
-    printf("connect outport %d to %p\n", iemladspa->control_data->data[offset_out+ j].index, src + j*size);
-  }
-#endif
-
-
-	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
 		iemladspa->klass->connect_port(iemladspa->channelinstance,
                                  iemladspa->control_data->data[offset_in + j].index,
                                  dst + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
+    printf("connect outport %d to %p\n", iemladspa->control_data->data[offset_out+ j].index, src + j*size);
 		iemladspa->klass->connect_port(iemladspa->channelinstance,
                                  iemladspa->control_data->data[offset_out+ j].index,
                                  src + j*size);
   }
+
   iemladspa->klass->run(iemladspa->channelinstance, size);
 	
-	interleave(src, dst, size, iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels);
+	interleave(src, dst, size, channels);
 
 	return size;
 }
