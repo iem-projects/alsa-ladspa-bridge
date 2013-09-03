@@ -54,22 +54,22 @@ typedef struct snd_pcm_iemladspa {
 
 } snd_pcm_iemladspa_t;
 
-static inline void interleave(float *src, float *dst, int n, int m)
+static inline void interleave(float *src, float *dst, int frames, int channels)
 {
 	int i, j;
-	for(i = 0; i < n; i++){
-		for(j = 0; j < m; j++){
-			dst[i*m + j] = src[i + n*j];
+	for(i = 0; i < frames; i++){
+		for(j = 0; j < channels; j++){
+			dst[i*channels + j] = src[i + frames*j];
 		}
 	}
 }
 
-static inline void deinterleave(float *src, float *dst, int n, int m)
+static inline void deinterleave(float *src, float *dst, int frames, int channels)
 {
 	int i, j;
-	for(i = 0; i < n; i++){
-		for(j = 0; j < m; j++){
-			dst[i + n*j] = src[i*m + j];
+	for(i = 0; i < frames; i++){
+		for(j = 0; j < channels; j++){
+			dst[i + frames*j] = src[i*channels + j];
 		}
 	}
 }
