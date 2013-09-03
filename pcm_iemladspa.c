@@ -141,10 +141,12 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 
 
   /* TODO: Figure out why this segfaults */
-  /* if(iemladspa->klass->cleanup) {
-       iemladspa->klass->cleanup(iemladspa->channelinstance);
-     }
-  */
+#if 1
+  if(iemladspa->klass->cleanup) {
+    iemladspa->klass->cleanup(iemladspa->channelinstance);
+  }
+#endif
+
 	LADSPAcontrolUnMMAP(iemladspa->control_data);
 	LADSPAunload(iemladspa->library);
 	free(iemladspa);
