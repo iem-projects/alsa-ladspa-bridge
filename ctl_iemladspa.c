@@ -61,7 +61,7 @@ static int iemladspa_elem_count(snd_ctl_ext_t *ext)
 }
 
 static int iemladspa_elem_list(snd_ctl_ext_t *ext, unsigned int offset,
-		snd_ctl_elem_id_t *id)
+                             snd_ctl_elem_id_t *id)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_MIXER);
@@ -71,7 +71,7 @@ static int iemladspa_elem_list(snd_ctl_ext_t *ext, unsigned int offset,
 }
 
 static snd_ctl_ext_key_t iemladspa_find_elem(snd_ctl_ext_t *ext,
-		const snd_ctl_elem_id_t *id)
+                                           const snd_ctl_elem_id_t *id)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	const char *name;
@@ -90,17 +90,16 @@ static snd_ctl_ext_key_t iemladspa_find_elem(snd_ctl_ext_t *ext,
 }
 
 static int iemladspa_get_attribute(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-		int *type, unsigned int *acc, unsigned int *count)
+                                 int *type, unsigned int *acc, unsigned int *count)
 {
-	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	*type = SND_CTL_ELEM_TYPE_INTEGER;
 	*acc = SND_CTL_EXT_ACCESS_READWRITE;
-	*count = iemladspa->control_data->channels;
+	*count = 1;
 	return 0;
 }
 
 static int iemladspa_get_integer_info(snd_ctl_ext_t *ext,
-	snd_ctl_ext_key_t key, long *imin, long *imax, long *istep)
+                                    snd_ctl_ext_key_t key, long *imin, long *imax, long *istep)
 {
 	*istep = 1;
 	*imin = 0;
@@ -108,26 +107,25 @@ static int iemladspa_get_integer_info(snd_ctl_ext_t *ext,
 	return 0;
 }
 
+/* read data from ladspa-plugin */
 static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-		long *value)
+                                long *value)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
-	int i;
+  LADSPA_Data v = iemladspa->control_data->control[key].data;
 
-	for(i = 0; i < iemladspa->control_data->channels; i++) {
-    LADSPA_Data v = iemladspa->control_data->control[key].data[i];
 #if 0
     fprintf(stderr, "reading %ul[%d]: %f\n", (unsigned int)(key), i, v);
 #endif
     if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-      value[i]= v * 100;
+      value[0]= v * 100;
     } else {
-      value[i] = ((v - iemladspa->control_info[key].min)/
-                  (iemladspa->control_info[key].max-
-                   iemladspa->control_info[key].min))*100;
+      value[0] = ((v - iemladspa->control_info[key].min)/
+               (iemladspa->control_info[key].max-
+                iemladspa->control_info[key].min))*100;
 #if 0
       fprintf(stderr, "... %lu = 100 * (%f - %lu) / (%lu - %lu)\n",
-              (unsigned long)value[i], v,
+              (unsigned long)value, v,
               iemladspa->control_info[key].min,
               iemladspa->control_info[key].max,
               iemladspa->control_info[key].min
@@ -135,36 +133,32 @@ static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 #endif
     }
 
-  }
-
-  return iemladspa->control_data->channels*sizeof(long);
+  return sizeof(long);
 }
 
+/* write data to ladspa-plugin */
 static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-		long *value)
+                                 long *value)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
-	int i;
 	float setting;
 
-	for(i = 0; i < iemladspa->control_data->channels; i++) {
-		setting = value[i];
-    if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-      iemladspa->control_data->control[key].data[i] = (setting/100);
-    } else {
-      iemladspa->control_data->control[key].data[i] = (setting/100)*
-        (iemladspa->control_info[key].max-
-         iemladspa->control_info[key].min)+
-        iemladspa->control_info[key].min;
-    }
-	}
+  setting = value[0];
+  if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
+    iemladspa->control_data->control[key].data = (setting/100);
+  } else {
+    iemladspa->control_data->control[key].data = (setting/100)*
+      (iemladspa->control_info[key].max-
+       iemladspa->control_info[key].min)+
+      iemladspa->control_info[key].min;
+  }
 
 	return 1;
 }
 
 static int iemladspa_read_event(snd_ctl_ext_t *ext ATTRIBUTE_UNUSED,
-		snd_ctl_elem_id_t *id ATTRIBUTE_UNUSED,
-		unsigned int *event_mask ATTRIBUTE_UNUSED)
+                              snd_ctl_elem_id_t *id ATTRIBUTE_UNUSED,
+                              unsigned int *event_mask ATTRIBUTE_UNUSED)
 {
 	return -EAGAIN;
 }
@@ -184,15 +178,17 @@ static snd_ctl_ext_callback_t iemladspa_ext_callback = {
 SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 {
 	/* TODO: Plug all of the memory leaks if these some initialization
-		failure */
+     failure */
 	snd_config_iterator_t it, next;
 	snd_ctl_iemladspa_t *iemladspa;
 	const char *controls = ".alsaiemladspa.bin";
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
 	const char *module = "iemladspa";
-	long channels = 2;
 	const char *sufix = " Playback Volume";
 	int err, i, index;
+
+  long  inchannels = 2;
+  long outchannels = 2;
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(it, next, conf) {
@@ -214,10 +210,18 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 			snd_config_get_string(n, &module);
 			continue;
 		}
-		if (strcmp(id, "channels") == 0) {
-			snd_config_get_integer(n, &channels);
-			if(channels < 1) {
-				SNDERR("channels < 1");
+		if (strcmp(id, "inchannels") == 0) {
+			snd_config_get_integer(n, &inchannels);
+			if(inchannels < 1) {
+				SNDERR("inchannels < 1");
+				return -EINVAL;
+			}
+			continue;
+		}
+		if (strcmp(id, "outchannels") == 0) {
+			snd_config_get_integer(n, &outchannels);
+			if(outchannels < 1) {
+				SNDERR("outchannels < 1");
 				return -EINVAL;
 			}
 			continue;
@@ -253,7 +257,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	strncpy(iemladspa->ext.driver, "LADSPA Plugin", sizeof(iemladspa->ext.driver));
 	strncpy(iemladspa->ext.name, iemladspa->klass->Label, sizeof(iemladspa->ext.name));
 	strncpy(iemladspa->ext.longname, iemladspa->klass->Name,
-			sizeof(iemladspa->ext.longname));
+          sizeof(iemladspa->ext.longname));
 	strncpy(iemladspa->ext.mixername, "alsaiemladspa", sizeof(iemladspa->ext.mixername));
 
 	/* Create the ALSA External Plugin */
@@ -263,7 +267,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	/* MMAP to the controls file */
-	iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, channels);
+	iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, inchannels, outchannels);
 	if(iemladspa->control_data == NULL) {
 		return -1;
 	}
@@ -277,7 +281,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	
 	/* Pull in data from controls file */
 	iemladspa->control_info = malloc(
-			sizeof(snd_ctl_iemladspa_control_t)*iemladspa->num_input_controls);
+                                 sizeof(snd_ctl_iemladspa_control_t)*iemladspa->num_input_controls);
 	if(iemladspa->control_info == NULL) {
 		return -1;
 	}
@@ -286,36 +290,43 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 		if(iemladspa->control_data->control[i].type == LADSPA_CNTRL_INPUT) {
 			index = iemladspa->control_data->control[i].index;
 			if(iemladspa->klass->PortDescriptors[index] !=
-					(LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
+         (LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
 				SNDERR("Problem with control file %s, %d.", controls, index);
 				return -1;
 			}
 			iemladspa->control_info[i].min =
-					iemladspa->klass->PortRangeHints[index].LowerBound;
+        iemladspa->klass->PortRangeHints[index].LowerBound;
 			iemladspa->control_info[i].max =
-					iemladspa->klass->PortRangeHints[index].UpperBound;
+        iemladspa->klass->PortRangeHints[index].UpperBound;
 			iemladspa->control_info[i].name = malloc(
-					strlen(iemladspa->klass->PortNames[index]) +
-					strlen(sufix) + 6);
+                                             strlen(iemladspa->klass->PortNames[index]) +
+                                             strlen(sufix) + 6);
 			if(iemladspa->control_info[i].name == NULL) {
 				return -1;
 			}
 			sprintf(iemladspa->control_info[i].name, "%02d. %s%s",
-					index, iemladspa->klass->PortNames[index], sufix);
+              index, iemladspa->klass->PortNames[index], sufix);
 		}
 	}
 
 	/* Make sure that the control file makes sense */
-	if(iemladspa->klass->PortDescriptors[iemladspa->control_data->input_index] !=
-			(LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-		SNDERR("Problem with control file %s.", controls);
-		return -1;
-	}
-	if(iemladspa->klass->PortDescriptors[iemladspa->control_data->output_index] !=
-			(LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-		SNDERR("Problem with control file %s.", controls);
-		return -1;
-	}
+  for(i=0; i<iemladspa->control_data->num_inchannels; i++) {
+    unsigned int index=iemladspa->control_data->input[i];
+    if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
+       (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
+      SNDERR("Problem with control file %s.", controls);
+      return -1;
+    }
+  }
+  for(i=0; i<iemladspa->control_data->num_outchannels; i++) {
+    unsigned int index=iemladspa->control_data->output[i];
+
+    if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
+       (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
+      SNDERR("Problem with control file %s.", controls);
+      return -1;
+    }
+  }
 
 	*handlep = iemladspa->ext.handle;
 	return 0;
