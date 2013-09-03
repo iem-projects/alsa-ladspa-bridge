@@ -33,6 +33,7 @@ typedef struct snd_pcm_iemladspa {
 	const LADSPA_Descriptor *klass;
 	LADSPA_Control *control_data;
 	LADSPA_Handle *channel[];
+  
 } snd_pcm_iemladspa_t;
 
 static inline void interleave(float *src, float *dst, int n, int m)
@@ -114,8 +115,13 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
 	int i, j;
 
+  printf("init %p playback=%d\n", ext, ext->stream==SND_PCM_STREAM_PLAYBACK);
+
 	/* Instantiate a LADSPA Plugin for each channel */
 	for(i = 0; i < iemladspa->control_data->channels; i++) {
+  printf("instantiate %d\n", i);
+
+
 		iemladspa->channel[i] = iemladspa->klass->instantiate(
 				iemladspa->klass, ext->rate);
 		if(iemladspa->channel[i] == NULL) {
@@ -154,6 +160,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	const char *module = "iemladspa";
 	long channels = 2;
 	int err;
+
+  printf("stream=%d\n", stream);
 	
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
@@ -190,7 +198,11 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
-
+  if(1) {
+    const void*id=NULL;
+    snd_config_get_pointer(sconf, &id);
+    printf("SLAVE: %p = %d\n", id, snd_config_get_type(sconf));
+  }
 	/* Make sure we have a slave and control devices defined */
 	if (! sconf) {
 		SNDERR("No slave configuration for iemladspa pcm");
@@ -209,11 +221,14 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
 	/* Open the LADSPA Plugin */
 	iemladspa->library = LADSPAload(library);
+  printf("LADSPAlib: %p\n", iemladspa->library);
 	if(iemladspa->library == NULL) {
 		return -1;
 	}
 
 	iemladspa->klass = LADSPAfind(iemladspa->library, library, module);
+  printf("LADSPAklass: %p\n", iemladspa->klass);
+
 	if(iemladspa->klass == NULL) {
 		return -1;
 	}
@@ -223,6 +238,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	if (err < 0) {
 		return err;
 	}
+  printf("plugin: %p\n", iemladspa);
+
 
 	/* MMAP to the controls file */
 	iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, channels);
@@ -247,11 +264,14 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 			SND_PCM_EXTPLUG_HW_CHANNELS,
 			iemladspa->control_data->channels,
 			iemladspa->control_data->channels);
+
 	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_CHANNELS,
 			iemladspa->control_data->channels);
+
 	snd_pcm_extplug_set_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
+
 	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 
