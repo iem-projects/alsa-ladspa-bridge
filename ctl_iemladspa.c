@@ -115,13 +115,29 @@ static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 	int i;
 
 	for(i = 0; i < iemladspa->control_data->channels; i++) {
-		value[i] = ((iemladspa->control_data->control[key].data[i] -
-			iemladspa->control_info[key].min)/
-			(iemladspa->control_info[key].max-
-			iemladspa->control_info[key].min))*100;
-	}
+    LADSPA_Data v = iemladspa->control_data->control[key].data[i];
+#if 0
+    fprintf(stderr, "reading %ul[%d]: %f\n", (unsigned int)(key), i, v);
+#endif
+    if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
+      value[i]= v * 100;
+    } else {
+      value[i] = ((v - iemladspa->control_info[key].min)/
+                  (iemladspa->control_info[key].max-
+                   iemladspa->control_info[key].min))*100;
+#if 0
+      fprintf(stderr, "... %lu = 100 * (%f - %lu) / (%lu - %lu)\n",
+              (unsigned long)value[i], v,
+              iemladspa->control_info[key].min,
+              iemladspa->control_info[key].max,
+              iemladspa->control_info[key].min
+              );
+#endif
+    }
 
-	return iemladspa->control_data->channels*sizeof(long);
+  }
+
+  return iemladspa->control_data->channels*sizeof(long);
 }
 
 static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
@@ -133,10 +149,14 @@ static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 
 	for(i = 0; i < iemladspa->control_data->channels; i++) {
 		setting = value[i];
-		iemladspa->control_data->control[key].data[i] = (setting/100)*
-			(iemladspa->control_info[key].max-
-			iemladspa->control_info[key].min)+
-			iemladspa->control_info[key].min;
+    if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
+      iemladspa->control_data->control[key].data[i] = (setting/100);
+    } else {
+      iemladspa->control_data->control[key].data[i] = (setting/100)*
+        (iemladspa->control_info[key].max-
+         iemladspa->control_info[key].min)+
+        iemladspa->control_info[key].min;
+    }
 	}
 
 	return 1;
