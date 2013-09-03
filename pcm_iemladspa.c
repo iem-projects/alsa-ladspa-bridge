@@ -84,6 +84,8 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
 	float *src, *dst;
 	int j;
+  const unsigned long offset_in = iemladspa->control_data->num_controls;
+  const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
 
 	
 	/* Calculate buffer locations */
@@ -99,31 +101,31 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
-	deinterleave(src, dst, size, iemladspa->control_data->channels);
+	deinterleave(src, dst, size, iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels);
 
 #if 0
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
-    printf("connect  inport %d to %p\n", iemladspa->control_data->input[j],  dst + j*size);
+    printf("connect  inport %d to %p\n", iemladspa->control_data->data[offset_in + j].index,  dst + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
-    printf("connect outport %d to %p\n", iemladspa->control_data->output[j], src + j*size);
+    printf("connect outport %d to %p\n", iemladspa->control_data->data[offset_out+ j].index, src + j*size);
   }
 #endif
 
 
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
 		iemladspa->klass->connect_port(iemladspa->channelinstance,
-			iemladspa->control_data->input[j],
-			dst + j*size);
+                                 iemladspa->control_data->data[offset_in + j].index,
+                                 dst + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
 		iemladspa->klass->connect_port(iemladspa->channelinstance,
-			iemladspa->control_data->output[j],
-			src + j*size);
+                                 iemladspa->control_data->data[offset_out+ j].index,
+                                 src + j*size);
   }
   iemladspa->klass->run(iemladspa->channelinstance, size);
 	
-	interleave(src, dst, size, iemladspa->control_data->channels);
+	interleave(src, dst, size, iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels);
 
 	return size;
 }
@@ -170,8 +172,8 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 	/* Connect controls to the LADSPA Plugin */
   for(i = 0; i < iemladspa->control_data->num_controls; i++) {
     iemladspa->klass->connect_port(iemladspa->channelinstance,
-                                 iemladspa->control_data->control[i].index,
-                                 &iemladspa->control_data->control[i].data);
+                                 iemladspa->control_data->data[i].index,
+                                 &iemladspa->control_data->data[i].data);
 		}
 
 	return 0;
@@ -302,8 +304,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
 	/* Make sure that the control file makes sense */
   unsigned int j;
+
+  const unsigned long offset_in = iemladspa->control_data->num_controls;
+  const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
+
   for(j=0; j<iemladspa->control_data->num_inchannels; j++) {
-    unsigned int index=iemladspa->control_data->input[j];
+    unsigned int index=iemladspa->control_data->data[offset_in + j].index;
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
       SNDERR("Problem with control file %s.", controls);
@@ -311,7 +317,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     }
   }
   for(j=0; j<iemladspa->control_data->num_outchannels; j++) {
-    unsigned int index=iemladspa->control_data->output[j];
+    unsigned int index=iemladspa->control_data->data[offset_out+ j].index;
 
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
@@ -321,6 +327,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   }
 
 	/* Set PCM Contraints */
+#if 0
 	snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_CHANNELS,
 			iemladspa->control_data->channels,
@@ -329,6 +336,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_CHANNELS,
 			iemladspa->control_data->channels);
+#endif
 
 	snd_pcm_extplug_set_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
