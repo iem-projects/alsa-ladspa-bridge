@@ -262,17 +262,17 @@ void LADSPAcontrolUnMMAP(LADSPA_Control *control)
 }
 
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
-		const char *controls_filename, unsigned int channels)
+                                   const char *controls_filename, unsigned int inchannels, unsigned int outchannels)
 {
 	const char * homePath;
 	char *filename;
-	unsigned long i, j, num_controls, index;
+	unsigned long i, num_controls, index, iindex, oindex;
 	LADSPA_Control *default_controls;
 	LADSPA_Control *ptr;
 	int fd;
 	unsigned long length;
 
-	if(channels > 16) {
+	if(inchannels+outchannels > 16) {
 		fprintf(stderr, "Can only control a maximum of 16 channels.\n");
 		return NULL;
 	}
@@ -312,7 +312,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 	/* Calculate the required file-size */
 	length = sizeof(LADSPA_Control) +
 			num_controls*sizeof(LADSPA_Control_Data) +
-			num_controls*sizeof(LADSPA_Data)*channels;
+    num_controls*sizeof(LADSPA_Data)*(inchannels+outchannels);
 
 	/* Open config file */
 	fd = open(filename, O_RDWR);
@@ -335,41 +335,59 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 			}
 			default_controls->length = length;
 			default_controls->id = psDescriptor->UniqueID;
-			default_controls->channels = channels;
+			default_controls->num_inchannels = inchannels;
+			default_controls->num_outchannels = outchannels;
+      default_controls->channels = inchannels + outchannels;
 			default_controls->num_controls = num_controls;
-			default_controls->input_index = -1;
-			default_controls->output_index = -1;
+			default_controls->input = NULL;
+			default_controls->output = NULL;
+
+      unsigned long num_controls = 0, num_inchannels = 0, num_outchannels = 0;
+
 			for(i = 0, index=0; i < psDescriptor->PortCount; i++) {
+        if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_CONTROL)
+          num_controls++;
+        else if(psDescriptor->PortDescriptors[i] == (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO))
+          num_inchannels++;
+        else if(psDescriptor->PortDescriptors[i] == (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO))
+          num_outchannels++;
+      }
+      default_controls->input  = (int*)calloc( num_inchannels, sizeof(int));
+      default_controls->output = (int*)calloc(num_outchannels, sizeof(int));
+
+			for(i = 0, index=0, iindex=0, oindex=0; i < psDescriptor->PortCount; i++) {
 				if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_CONTROL) {
 						default_controls->control[index].index = i;
 						LADSPADefault(&psDescriptor->PortRangeHints[i], 44100,
-								&default_controls->control[index].data[0]);
-					for(j = 1; j < channels; j++) {
-						default_controls->control[index].data[j] =
-								default_controls->control[index].data[0];
-					}
+								&default_controls->control[index].data);
+
 					if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_INPUT) {
 						default_controls->control[index].type = LADSPA_CNTRL_INPUT;
 					} else {
 						default_controls->control[index].type = LADSPA_CNTRL_OUTPUT;
 					}
 					index++;
+
 				} else if(psDescriptor->PortDescriptors[i] ==
 						(LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-					default_controls->input_index = i;
+					default_controls->input [iindex] = i;
+          iindex++;
+
 				} else if(psDescriptor->PortDescriptors[i] ==
 						(LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-					default_controls->output_index = i;
+					default_controls->output[oindex] = i;
+          oindex++;
 				}
 			}
-			if((default_controls->output_index == -1) ||
-				(default_controls->input_index == -1)) {
+			if((default_controls->output == NULL) ||
+				(default_controls->input == NULL)) {
 					fprintf(stderr,
 						"LADSPA Plugin must have one audio channel\n");
 				free(default_controls);
 				free(filename);
 				return NULL;
 			}
+
 			/* Write the deafult data to the file. */
 			if(write(fd, default_controls, length) < 0) {
 				free(default_controls);
@@ -410,9 +428,9 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		return NULL;
 	}
 
-	if(ptr->channels != channels) {
-		fprintf(stderr, "%s is not a control file doesn't have %ud channels.\n",
-				filename, channels);
+	if(ptr->channels != (inchannels+outchannels)) {
+		fprintf(stderr, "%s is not a control file doesn't have %ud+%ud channels.\n",
+            filename, inchannels, outchannels);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;

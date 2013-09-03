@@ -41,21 +41,21 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
 #define LADSPA_CNTRL_OUTPUT	1
 typedef struct LADSPA_Control_Data_ {
 	int index;
-	LADSPA_Data data[16];	/* Max number of channels, would be nicer if 
-								this wasn't a fixed number */
+	LADSPA_Data data;
 	int type;
 } LADSPA_Control_Data;
 typedef struct LADSPA_Control_ {
 	unsigned long length;
 	unsigned long id;
-	unsigned long channels;
+	unsigned long channels, num_inchannels, num_outchannels;
 	unsigned long num_controls;
-	int input_index;
-	int output_index;
+	int*input ; /* index of inchannel #in */
+	int*output; /* index of outchannel #out */
 	LADSPA_Control_Data control[];
 } LADSPA_Control;
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
-		const char *controls_filename, unsigned int channels);
+                                   const char *controls_filename,
+                                   unsigned int inchannels, unsigned int outchannels);
 void LADSPAcontrolUnMMAP(LADSPA_Control *control);
 
 #endif
