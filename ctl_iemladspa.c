@@ -112,7 +112,7 @@ static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
                                 long *value)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
-  LADSPA_Data v = iemladspa->control_data->control[key].data;
+  LADSPA_Data v = iemladspa->control_data->data[key].data;
 
 #if 0
     fprintf(stderr, "reading %ul[%d]: %f\n", (unsigned int)(key), i, v);
@@ -145,9 +145,9 @@ static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 
   setting = value[0];
   if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-    iemladspa->control_data->control[key].data = (setting/100);
+    iemladspa->control_data->data[key].data = (setting/100);
   } else {
-    iemladspa->control_data->control[key].data = (setting/100)*
+    iemladspa->control_data->data[key].data = (setting/100)*
       (iemladspa->control_info[key].max-
        iemladspa->control_info[key].min)+
       iemladspa->control_info[key].min;
@@ -274,7 +274,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	
 	iemladspa->num_input_controls = 0;
 	for(i = 0; i < iemladspa->control_data->num_controls; i++) {
-		if(iemladspa->control_data->control[i].type == LADSPA_CNTRL_INPUT) {
+		if(iemladspa->control_data->data[i].type == LADSPA_CNTRL_INPUT) {
 			iemladspa->num_input_controls++;
 		}
 	}
@@ -287,8 +287,8 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	for(i = 0; i < iemladspa->num_input_controls; i++) {
-		if(iemladspa->control_data->control[i].type == LADSPA_CNTRL_INPUT) {
-			index = iemladspa->control_data->control[i].index;
+		if(iemladspa->control_data->data[i].type == LADSPA_CNTRL_INPUT) {
+			index = iemladspa->control_data->data[i].index;
 			if(iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
 				SNDERR("Problem with control file %s, %d.", controls, index);
@@ -310,8 +310,10 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	/* Make sure that the control file makes sense */
+  const unsigned long offset_in = iemladspa->control_data->num_controls;
+  const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
   for(i=0; i<iemladspa->control_data->num_inchannels; i++) {
-    unsigned int index=iemladspa->control_data->input[i];
+    unsigned int index=iemladspa->control_data->data[offset_in + i].index;
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
       SNDERR("Problem with control file %s.", controls);
@@ -319,7 +321,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
     }
   }
   for(i=0; i<iemladspa->control_data->num_outchannels; i++) {
-    unsigned int index=iemladspa->control_data->output[i];
+    unsigned int index=iemladspa->control_data->data[offset_out + i].index;
 
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
