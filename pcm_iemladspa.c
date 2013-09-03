@@ -150,8 +150,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	snd_pcm_iemladspa_t *iemladspa;
 	snd_config_t *sconf = NULL;
 	const char *controls = ".alsaiemladspa.bin";
-	const char *library = "/usr/lib/ladspa/caps.so";
-	const char *module = "Eq";
+	const char *library = "/usr/lib/ladspa/iemladspa.so";
+	const char *module = "iemladspa";
 	long channels = 2;
 	int err;
 	

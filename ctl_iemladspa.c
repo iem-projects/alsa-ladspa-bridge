@@ -168,8 +168,8 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	snd_config_iterator_t it, next;
 	snd_ctl_iemladspa_t *iemladspa;
 	const char *controls = ".alsaiemladspa.bin";
-	const char *library = "/usr/lib/ladspa/caps.so";
-	const char *module = "Eq";
+	const char *library = "/usr/lib/ladspa/iemladspa.so";
+	const char *module = "iemladspa";
 	long channels = 2;
 	const char *sufix = " Playback Volume";
 	int err, i, index;
