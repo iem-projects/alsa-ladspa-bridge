@@ -47,11 +47,10 @@ typedef struct LADSPA_Control_Data_ {
 typedef struct LADSPA_Control_ {
 	unsigned long length;
 	unsigned long id;
-	unsigned long channels, num_inchannels, num_outchannels;
 	unsigned long num_controls;
-	int*input ; /* index of inchannel #in */
-	int*output; /* index of outchannel #out */
-	LADSPA_Control_Data control[];
+	unsigned long num_inchannels;
+  unsigned long num_outchannels;
+	LADSPA_Control_Data data[]; /* controls, inchannels, outchannels */
 } LADSPA_Control;
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
                                    const char *controls_filename,
