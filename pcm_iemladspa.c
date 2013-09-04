@@ -175,7 +175,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
-  printf("closing: %p", ext);
+  printf("closing: %p\n", ext);
   print_pcm_extplug(ext);
 
   if(iemladspa->klass->deactivate) {
@@ -202,7 +202,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
 	int i;
 
-  print_pcm_extplug(ext);
+  //print_pcm_extplug(ext);
 
 	/* Instantiate a LADSPA Plugin */
   if(!s_plugininstance) {
@@ -246,9 +246,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   long inchannels = 2;
   long outchannels = 2;
 
-
-  printf("stream=%d\n", stream);
-	
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -341,9 +338,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		return err;
 	}
 
-  printf("ROOT:\n");
-  print_pcm_extplug(&iemladspa->ext);
-  printf(":ROOT \n");
+  //printf("ROOT:\n"); print_pcm_extplug(&iemladspa->ext); printf(":ROOT \n");
 
 
 	/* MMAP to the controls file */
