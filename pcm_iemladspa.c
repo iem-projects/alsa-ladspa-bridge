@@ -226,8 +226,8 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   }
 
 
+#if 0
   /* TODO: Figure out why this segfaults */
-#if 1
   if(iemladspa->klass->cleanup) {
     iemladspa->klass->cleanup(iemladspa->plugininstance);
   }
