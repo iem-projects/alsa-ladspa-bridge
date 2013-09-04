@@ -128,6 +128,15 @@ static inline void deinterleave(float *src, float *dst, int frames, int channels
 	}
 }
 
+static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
+                         unsigned long Port,
+                         LADSPA_Data * DataLocation,
+                         const char*name) {
+  printf("connect %s\t %lu to %p\n", name, Port, DataLocation);
+  iemladspa->klass->connect_port(iemladspa->plugininstance,
+                               Port, DataLocation);
+}
+
 static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  const snd_pcm_channel_area_t *dst_areas,
 		  snd_pcm_uframes_t dst_offset,
@@ -167,21 +176,22 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                iemladspa->inbuf.data + bufoffset_in,
                size, inchannels);
 
-	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
-    //printf("connect  inport %d to %p\n", iemladspa->control_data->data[dataoffset_in + j].index,  dst + j*size);
-		iemladspa->klass->connect_port(iemladspa->plugininstance,
-                                 iemladspa->control_data->data[dataoffset_in + j].index,
-                                 iemladspa->inbuf.data + j*size);
-  }
-	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
-    //printf("connect outport %d to %p\n", iemladspa->control_data->data[dataoffset_out+ j].index, src + j*size);
-		iemladspa->klass->connect_port(iemladspa->plugininstance,
-                                 iemladspa->control_data->data[dataoffset_out+ j].index,
-                                 iemladspa->outbuf.data + j*size);
-  }
-
   /* only run when stream is in playback mode */
   if(playback) {
+    for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
+      connect_port(iemladspa,
+                   iemladspa->control_data->data[dataoffset_in + j].index,
+                   iemladspa->inbuf.data + j*size,
+                   "inport "
+                   );
+    }
+    for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
+      connect_port(iemladspa,
+                   iemladspa->control_data->data[dataoffset_out+ j].index,
+                   iemladspa->outbuf.data + j*size,
+                   "outport");
+    }
+
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
 
