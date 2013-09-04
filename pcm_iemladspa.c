@@ -239,8 +239,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
 	const char *module = "iemladspa";
 	int err;
-  long  inchannels = 2;
-  long outchannels = 2;
+  long sourcechannels = 2;
+  long sinkchannels = 2;
 
 
   printf("stream=%d\n", stream);
@@ -270,16 +270,16 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 			continue;
 		}
 		if (strcmp(id, "inchannels") == 0) {
-      snd_config_get_integer(n, &inchannels);
-      if(inchannels < 1) {
+      snd_config_get_integer(n, &sourcechannels);
+      if(sourcechannels < 1) {
         SNDERR("inchannels < 1");
         return -EINVAL;
       }
       continue;
 		}
 		if (strcmp(id, "outchannels") == 0) {
-      snd_config_get_integer(n, &outchannels);
-      if(outchannels < 1) {
+      snd_config_get_integer(n, &sinkchannels);
+      if(sinkchannels < 1) {
         SNDERR("outchannels < 1");
         return -EINVAL;
       }
@@ -290,7 +290,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		return -EINVAL;
 	}
 
-  printf("channels= %d = %d+%d\n", (int)(inchannels+outchannels), (int)inchannels, (int)outchannels);
+  printf("channels= %d = %d+%d\n", (int)(sourcechannels+sinkchannels), (int)sourcechannels, (int)sinkchannels);
 
   if(1) {
     const void*id=NULL;
@@ -334,7 +334,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     printf("extplug failed\n");
 		return err;
 	}
-  printf("plugin: %p @ %d channels\n", iemladspa, (int)(inchannels+outchannels));
+  printf("plugin: %p @ %d channels\n", iemladspa, (int)(sourcechannels+sinkchannels));
 
   printf("ROOT:\n");
   print_pcm_extplug(&iemladspa->ext);
@@ -342,7 +342,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
 
 	/* MMAP to the controls file */
-  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, inchannels, outchannels);
+  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
+                                            sourcechannels, sinkchannels);
 	if(iemladspa->control_data == NULL) {
 		return -1;
 	}
