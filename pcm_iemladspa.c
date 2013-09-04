@@ -56,6 +56,18 @@ static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
   printf("EXTPLUG: slave_format=%d\n", ext->slave_format);
   printf("EXTPLUG: slave_subformat=%d\n", ext->slave_subformat);
   printf("EXTPLUG: slave_channels=%d\n", ext->slave_channels);
+  printf("\n");
+}
+
+static void print_pcm_config(snd_config_t*config, const char*name) {
+  int err;
+  const char*str;
+
+  printf("SNDCONFIG[%p]: '%s'=[%d]\n", config, name, snd_config_get_type(config));
+  err=snd_config_get_id(config, &str);
+  printf("SNDCONFIG[%p]: id[%d]=%s\n", config, err, str);
+  err=snd_config_get_string(config, &str);
+  printf("SNDCONFIG[%p]: string[%d]=%s\n", config, err, str);
 }
 
 typedef struct _iemladspa_audiobuf {
@@ -370,8 +382,11 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		return -1;
 	}
 
+  print_pcm_config(root, "root");
+  print_pcm_config(sconf, "sconf");
+
 	/* Create the ALSA External Plugin */
-  printf("creating external plugin\n");
+  printf("creating external plugin %p/%p\t%d/%d\n", root, sconf, stream, mode);
 	err = snd_pcm_extplug_create(&iemladspa->ext, name, root, sconf, stream, mode);
 	if (err < 0) {
     printf("extplug failed\n");
