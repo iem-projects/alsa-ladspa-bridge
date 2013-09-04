@@ -378,16 +378,18 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   }
 
 	/* Set PCM Contraints */
-#if 0
-	snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
-			SND_PCM_EXTPLUG_HW_CHANNELS,
-			iemladspa->control_data->channels,
-			iemladspa->control_data->channels);
+  unsigned int channels = (SND_PCM_STREAM_PLAYBACK == stream)
+    ? iemladspa->control_data->sourcechannels.out
+    : iemladspa->control_data->sinkchannels.in;
 
-	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
-			SND_PCM_EXTPLUG_HW_CHANNELS,
-			iemladspa->control_data->channels);
-#endif
+  snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
+                                   SND_PCM_EXTPLUG_HW_CHANNELS,
+                                   channels,
+                                   channels);
+
+  snd_pcm_extplug_set_slave_param(&iemladspa->ext,
+                                  SND_PCM_EXTPLUG_HW_CHANNELS,
+                                  channels);
 
 	snd_pcm_extplug_set_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
