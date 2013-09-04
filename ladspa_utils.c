@@ -262,22 +262,18 @@ void LADSPAcontrolUnMMAP(LADSPA_Control *control)
 }
 
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
-                                   const char *controls_filename, unsigned int inchannels, unsigned int outchannels)
+                                   const char *controls_filename,
+                                   iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels)
 {
 	const char * homePath;
 	char *filename;
 	unsigned long i, index, iindex, oindex;
-  unsigned long num_controls = 0, num_inchannels = 0, num_outchannels = 0;
+  unsigned int num_controls = 0, num_inchannels = 0, num_outchannels = 0;
 
 	LADSPA_Control *default_controls;
 	LADSPA_Control *ptr;
 	int fd;
 	unsigned long length;
-
-	if(inchannels+outchannels > 16) {
-		fprintf(stderr, "Can only control a maximum of 16 channels.\n");
-		return NULL;
-	}
 
 	/* Create config filename, if no path specified store in home directory */
 	if (controls_filename[0] == '/') {
@@ -317,6 +313,11 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		return NULL;
 	}
 
+  if(num_inchannels != (sourcechannels.in  + sinkchannels.in)) {
+		fprintf(stderr, "LADSPA Module has %d channels but we need %d+%d.\n", num_inchannels, sourcechannels.in, sinkchannels.in);
+		return NULL;
+  }
+
 	/* Calculate the required file-size */
 	length =                                          sizeof(LADSPA_Control)
     + (num_inchannels+num_outchannels+num_controls)*sizeof(LADSPA_Control_Data)
@@ -344,8 +345,13 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 			default_controls->length = length;
 			default_controls->id = psDescriptor->UniqueID;
 
-			default_controls->num_controls = num_controls;
-			default_controls->num_inchannels = num_inchannels;
+      default_controls->sourcechannels.in  = sourcechannels.in;
+      default_controls->sourcechannels.out = sourcechannels.out;
+      default_controls->sinkchannels.in    = sinkchannels.in;
+      default_controls->sinkchannels.out   = sinkchannels.out;
+
+			default_controls->num_controls    = num_controls;
+			default_controls->num_inchannels  = num_inchannels;
 			default_controls->num_outchannels = num_outchannels;
 
 			for(i = 0, index=0, iindex=0, oindex=0; i < psDescriptor->PortCount; i++) {
@@ -424,17 +430,17 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		return NULL;
 	}
 
-	if(ptr->num_inchannels != inchannels) {
+	if(ptr->num_inchannels != num_inchannels) {
 		fprintf(stderr, "%s is not a control file doesn't have %ud inchannels.\n",
-            filename, inchannels);
+            filename, num_inchannels);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;
 	}
 
-	if(ptr->num_outchannels != outchannels) {
+	if(ptr->num_outchannels != num_outchannels) {
 		fprintf(stderr, "%s is not a control file doesn't have %ud outchannels.\n",
-            filename, outchannels);
+            filename, num_outchannels);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;

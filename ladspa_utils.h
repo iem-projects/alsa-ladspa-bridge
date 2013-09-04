@@ -36,6 +36,14 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
 		     LADSPA_Data                * pfResult);
 
 
+typedef struct _iemladspa_iochannels {
+  unsigned int in;
+  unsigned int out;
+} iemladspa_iochannels_t;
+
+
+
+
 /* MMAP to a controls file */
 #define LADSPA_CNTRL_INPUT	0
 #define LADSPA_CNTRL_OUTPUT	1
@@ -47,14 +55,19 @@ typedef struct LADSPA_Control_Data_ {
 typedef struct LADSPA_Control_ {
 	unsigned long length;
 	unsigned long id;
-	unsigned long num_controls;
-	unsigned long num_inchannels;
-  unsigned long num_outchannels;
+  iemladspa_iochannels_t sourcechannels; /* source device (e.g. microphone) channels */
+  iemladspa_iochannels_t sinkchannels;   /* sink device (e.g. speaker) channels */
+
+	unsigned long num_controls;    /* number of controls in ladspa-plugin (input only?) */
+
+	unsigned long num_inchannels;  /* number of input ports in ladspa-plugin */  // DEPRECATED, use sourcechannels.in+sinkchannels.in
+  unsigned long num_outchannels; /* number of output ports in ladspa-plugin */ // DEPRECATED, use sourcechannels.out+sinkchannels.out
+
 	LADSPA_Control_Data data[]; /* controls, inchannels, outchannels */
 } LADSPA_Control;
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
                                    const char *controls_filename,
-                                   unsigned int inchannels, unsigned int outchannels);
+                                   iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels);
 void LADSPAcontrolUnMMAP(LADSPA_Control *control);
 
 #endif

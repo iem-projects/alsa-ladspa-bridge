@@ -187,7 +187,8 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	const char *sufix = " Playback Volume";
 	int err, i, index;
 
-  long  inchannels = 2;
+  iemladspa_iochannels_t sourcechannels, sinkchannels;
+  long inchannels = 2;
   long outchannels = 2;
 
 	/* Parse configuration options from asoundrc */
@@ -211,24 +212,27 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 			continue;
 		}
 		if (strcmp(id, "inchannels") == 0) {
-			snd_config_get_integer(n, &inchannels);
-			if(inchannels < 1) {
-				SNDERR("inchannels < 1");
-				return -EINVAL;
-			}
-			continue;
+      snd_config_get_integer(n, &inchannels);
+      if(inchannels < 1) {
+        SNDERR("inchannels < 1");
+        return -EINVAL;
+      }
+      continue;
 		}
 		if (strcmp(id, "outchannels") == 0) {
-			snd_config_get_integer(n, &outchannels);
-			if(outchannels < 1) {
-				SNDERR("outchannels < 1");
-				return -EINVAL;
-			}
-			continue;
+      snd_config_get_integer(n, &outchannels);
+      if(outchannels < 1) {
+        SNDERR("outchannels < 1");
+        return -EINVAL;
+      }
+      continue;
 		}
+
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
+  sourcechannels.in = sourcechannels.out = inchannels;
+  sinkchannels.in   = sinkchannels.out   = outchannels;
 
 	/* Intialize the local object data */
 	iemladspa = calloc(1, sizeof(*iemladspa));
@@ -267,7 +271,8 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	/* MMAP to the controls file */
-	iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls, inchannels, outchannels);
+  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
+                                            sourcechannels, sinkchannels);
 	if(iemladspa->control_data == NULL) {
 		return -1;
 	}

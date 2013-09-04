@@ -242,8 +242,9 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
 	const char *module = "iemladspa";
 	int err;
-  long sourcechannels = 2;
-  long sinkchannels = 2;
+  iemladspa_iochannels_t sourcechannels, sinkchannels;
+  long inchannels = 2;
+  long outchannels = 2;
 
 
   printf("stream=%d\n", stream);
@@ -273,16 +274,16 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 			continue;
 		}
 		if (strcmp(id, "inchannels") == 0) {
-      snd_config_get_integer(n, &sourcechannels);
-      if(sourcechannels < 1) {
+      snd_config_get_integer(n, &inchannels);
+      if(inchannels < 1) {
         SNDERR("inchannels < 1");
         return -EINVAL;
       }
       continue;
 		}
 		if (strcmp(id, "outchannels") == 0) {
-      snd_config_get_integer(n, &sinkchannels);
-      if(sinkchannels < 1) {
+      snd_config_get_integer(n, &outchannels);
+      if(outchannels < 1) {
         SNDERR("outchannels < 1");
         return -EINVAL;
       }
@@ -292,8 +293,10 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		SNDERR("Unknown field %s", id);
 		return -EINVAL;
 	}
+  sourcechannels.in = sourcechannels.out = inchannels;
+  sinkchannels.in   = sinkchannels.out   = outchannels;
 
-  printf("channels= %d = %d+%d\n", (int)(sourcechannels+sinkchannels), (int)sourcechannels, (int)sinkchannels);
+  printf("channels= %d/%d + %d/%d\n", sourcechannels.in, sourcechannels.out, sinkchannels.in, sinkchannels.out);
 
   if(1) {
     const void*id=NULL;
@@ -337,7 +340,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     printf("extplug failed\n");
 		return err;
 	}
-  printf("plugin: %p @ %d channels\n", iemladspa, (int)(sourcechannels+sinkchannels));
 
   printf("ROOT:\n");
   print_pcm_extplug(&iemladspa->ext);
