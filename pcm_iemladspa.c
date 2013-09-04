@@ -136,16 +136,22 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  snd_pcm_uframes_t size)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
-	float *src, *dst;
+  const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
+
 	int j;
-  const unsigned long offset_in = iemladspa->control_data->num_controls;
-  const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
-  const int channels = iemladspa->control_data->num_inchannels + iemladspa->control_data->num_outchannels;
+  const unsigned long dataoffset_in  = iemladspa->control_data->num_controls;
+  const unsigned long dataoffset_out = dataoffset_in + iemladspa->control_data->num_inchannels;
+
+  const unsigned int inchannels  = (playback)?(iemladspa->control_data->sourcechannels.in ):(iemladspa->control_data->sinkchannels.in);
+  const unsigned int outchannels = (playback)?(iemladspa->control_data->sourcechannels.out):(iemladspa->control_data->sinkchannels.out);
+
+  const unsigned long bufoffset_in  = (playback)?(iemladspa->control_data->sourcechannels.in  * size):0;
+  const unsigned long bufoffset_out = (playback)?(iemladspa->control_data->sourcechannels.out * size):0;
 
 	/* Calculate buffer locations */
-	src = (float*)(src_areas->addr +
+	float *src = (float*)(src_areas->addr +
 			(src_areas->first + src_areas->step * src_offset)/8);
-	dst = (float*)(dst_areas->addr +
+	float *dst = (float*)(dst_areas->addr +
 			(dst_areas->first + dst_areas->step * dst_offset)/8);	
 
 
@@ -157,29 +163,33 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
-  deinterleave(src, dst, size, channels);
-
+  deinterleave(src,
+               iemladspa->inbuf.data + bufoffset_in,
+               size, inchannels);
 
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
     //printf("connect  inport %d to %p\n", iemladspa->control_data->data[dataoffset_in + j].index,  dst + j*size);
 		iemladspa->klass->connect_port(iemladspa->plugininstance,
-                                 iemladspa->control_data->data[offset_in + j].index,
-                                 dst + j*size);
+                                 iemladspa->control_data->data[dataoffset_in + j].index,
+                                 iemladspa->inbuf.data + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
     //printf("connect outport %d to %p\n", iemladspa->control_data->data[dataoffset_out+ j].index, src + j*size);
 		iemladspa->klass->connect_port(iemladspa->plugininstance,
-                                 iemladspa->control_data->data[offset_out+ j].index,
-                                 src + j*size);
+                                 iemladspa->control_data->data[dataoffset_out+ j].index,
+                                 iemladspa->outbuf.data + j*size);
   }
 
   /* only run when stream is in playback mode */
   if(playback) {
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
-	interleave(src, dst, size, channels);
+
   //printf("instance=%p\tstream=%d\n", iemladspa->plugininstance, ext->stream);
 
+	interleave(iemladspa->outbuf.data + bufoffset_out,
+             dst,
+             size, outchannels);
 
   iemladspa->stream_direction = ext->stream;
 	return size;
