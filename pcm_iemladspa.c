@@ -196,17 +196,20 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	return 0;
 }
 
+static LADSPA_Handle *s_channelinstance=NULL;
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
 	int i;
 
-  printf("init %p playback=%d\n", ext, ext->stream==SND_PCM_STREAM_PLAYBACK);
   print_pcm_extplug(ext);
 
 	/* Instantiate a LADSPA Plugin */
+  if(!s_channelinstance) {
+    s_channelinstance=iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
+  }
 
-  iemladspa->channelinstance = iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
+  iemladspa->channelinstance = s_channelinstance;
   if(iemladspa->channelinstance == NULL) {
     return -1;
   }
