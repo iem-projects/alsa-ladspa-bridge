@@ -184,7 +184,6 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	const char *controls = ".alsaiemladspa.bin";
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
 	const char *module = "iemladspa";
-	const char *sufix = " Playback Volume";
 	int err, i, index;
 
   iemladspa_iochannels_t sourcechannels, sinkchannels;
@@ -303,14 +302,11 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
         iemladspa->klass->PortRangeHints[index].LowerBound;
 			iemladspa->control_info[i].max =
         iemladspa->klass->PortRangeHints[index].UpperBound;
-			iemladspa->control_info[i].name = malloc(
-                                             strlen(iemladspa->klass->PortNames[index]) +
-                                             strlen(sufix) + 6);
+
+			iemladspa->control_info[i].name = strdup(iemladspa->klass->PortNames[index]);
 			if(iemladspa->control_info[i].name == NULL) {
 				return -1;
 			}
-			sprintf(iemladspa->control_info[i].name, "%02d. %s%s",
-              index, iemladspa->klass->PortNames[index], sufix);
 		}
 	}
 
