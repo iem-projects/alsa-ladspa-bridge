@@ -430,17 +430,17 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		return NULL;
 	}
 
-	if(ptr->num_inchannels != num_inchannels) {
-		fprintf(stderr, "%s is not a control file doesn't have %ud inchannels.\n",
-            filename, num_inchannels);
+	if(ptr->sourcechannels.in != sourcechannels.in || ptr->sourcechannels.out != sourcechannels.out) {
+		fprintf(stderr, "%s is not a control file doesn't have %d/%d source channels.\n",
+            filename, sourcechannels.in, sourcechannels.out);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;
 	}
 
-	if(ptr->num_outchannels != num_outchannels) {
-		fprintf(stderr, "%s is not a control file doesn't have %ud outchannels.\n",
-            filename, num_outchannels);
+	if(ptr->sinkchannels.in != sinkchannels.in || ptr->sinkchannels.out != sinkchannels.out) {
+		fprintf(stderr, "%s is not a control file doesn't have %d/%d sink channels.\n",
+            filename, sinkchannels.in, sinkchannels.out);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;
