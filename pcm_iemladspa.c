@@ -346,6 +346,66 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  *   return FAIL
  */
 
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const char*libname,
+                                                      const char*module,
+                                                      const char*controlfile,
+                                                      iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
+                                                      ) {
+	void *library = NULL;
+	const LADSPA_Descriptor *klass=NULL;
+	LADSPA_Control *control_data= NULL;
+  int success=0;
+
+	library = LADSPAload(libname);
+	if(library == NULL) goto finalize;
+
+	klass = LADSPAfind(library, libname, module);
+	if(klass == NULL)goto finalize;
+
+  control_data = LADSPAcontrolMMAP(klass, controlfile,
+                                   sourcechannels, sinkchannels);
+
+  if(NULL == control_data) goto finalize;
+  success=1;
+
+ finalize:
+  printf("LADSPAlib: %p\n", library);
+  printf("LADSPAklass: %p\n", klass);
+
+  if(success) {
+    snd_pcm_iemladspa_t*iemladspa=(snd_pcm_iemladspa_t*)calloc(1, sizeof(snd_pcm_iemladspa_t));
+    iemladspa->library=library;
+    iemladspa->klass  = klass;
+    iemladspa->control_data = control_data;
+    iemladspa->stream_direction = -1;
+
+    return iemladspa;
+  }
+  if(library)
+    LADSPAunload(library);
+  return NULL;
+}
+
+
+static linked_list_t*s_mergeplugin_list = NULL;
+
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *root,
+                                                            const char*libname,
+                                                            const char*module,
+                                                            const char*controlfile,
+                                                            iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
+                                                            ) {
+  /* find a 'iemladspa' instance with 'root' as root-configuration */
+  snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, root);
+
+  if(!iemladspa) {
+    iemladspa = iemladspa_mergeplugin_create(libname, module, controlfile, sourcechannels, sinkchannels);
+    s_mergeplugin_list = linked_list_add(s_mergeplugin_list, root, iemladspa);
+  }
+
+  return iemladspa;
+}
+
 
 static snd_pcm_extplug_callback_t iemladspa_callback = {
 	.transfer = iemladspa_transfer,
