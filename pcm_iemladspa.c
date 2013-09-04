@@ -441,6 +441,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   iemladspa_iochannels_t sourcechannels, sinkchannels;
   long inchannels = 2;
   long outchannels = 2;
+  unsigned int pcmchannels = 2;
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
@@ -574,18 +575,18 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   }
 
 	/* Set PCM Contraints */
-  unsigned int channels = (SND_PCM_STREAM_PLAYBACK == stream)
+  pcmchannels = (SND_PCM_STREAM_PLAYBACK == stream)
     ? iemladspa->control_data->sourcechannels.out
     : iemladspa->control_data->sinkchannels.in;
 
   snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
                                    SND_PCM_EXTPLUG_HW_CHANNELS,
-                                   channels,
-                                   channels);
+                                   pcmchannels,
+                                   pcmchannels);
 
   snd_pcm_extplug_set_slave_param(&iemladspa->ext,
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
-                                  channels);
+                                  pcmchannels);
 
 	snd_pcm_extplug_set_param(&iemladspa->ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
