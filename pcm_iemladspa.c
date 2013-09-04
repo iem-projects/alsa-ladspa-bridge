@@ -69,6 +69,11 @@ typedef struct snd_pcm_iemladspa {
 	snd_pcm_extplug_t ext;
 	void *library;
 	const LADSPA_Descriptor *klass;
+
+  iemladspa_audiobuf_t inbuf ;
+  iemladspa_audiobuf_t outbuf;
+
+
 	LADSPA_Control *control_data;
 	LADSPA_Handle *plugininstance;
 } snd_pcm_iemladspa_t;
@@ -143,6 +148,12 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 	dst = (float*)(dst_areas->addr +
 			(dst_areas->first + dst_areas->step * dst_offset)/8);	
 
+
+  /* make sure out deinterleaving buffers are large enough */
+  audiobuffer_resize(&iemladspa->inbuf , size,
+                     iemladspa->control_data->sourcechannels.in +iemladspa->control_data->sinkchannels.in);
+  audiobuffer_resize(&iemladspa->outbuf, size,
+                     iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 #if 0
   printf("transfer: %p from %p to %p\n", ext, src_areas, dst_areas);
   printf("transferring from %p to %p\n", src, dst);
@@ -223,6 +234,13 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
                                  iemladspa->control_data->data[i].index,
                                  &iemladspa->control_data->data[i].data);
 		}
+
+  audiobuffer_resize(&iemladspa->inbuf,
+                     65536,
+                     iemladspa->control_data->sourcechannels.in+iemladspa->control_data->sinkchannels.in);
+  audiobuffer_resize(&iemladspa->outbuf,
+                     65536,
+                     iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
 	return 0;
 }
