@@ -40,6 +40,30 @@
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
+
+typedef struct _iemladspa_audiobuf {
+  unsigned int frames;
+  unsigned int channels;
+  size_t size;
+  float *data;
+} iemladspa_audiobuf_t;
+
+typedef struct snd_pcm_iemladspa {
+	snd_pcm_extplug_t ext;
+
+  snd_config_t   *sndconfig;
+
+	void *library;
+	const LADSPA_Descriptor *klass;
+
+  iemladspa_audiobuf_t inbuf ;
+  iemladspa_audiobuf_t outbuf;
+  int stream_direction;
+
+	LADSPA_Control *control_data;
+	LADSPA_Handle *plugininstance;
+} snd_pcm_iemladspa_t;
+
 static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
 
   printf("EXTPLUG: %p\n", ext);
@@ -70,26 +94,6 @@ static void print_pcm_config(snd_config_t*config, const char*name) {
   printf("SNDCONFIG[%p]: string[%d]=%s\n", config, err, str);
   printf("\n");
 }
-
-typedef struct _iemladspa_audiobuf {
-  unsigned int frames;
-  unsigned int channels;
-  size_t size;
-  float *data;
-} iemladspa_audiobuf_t;
-
-typedef struct snd_pcm_iemladspa {
-	snd_pcm_extplug_t ext;
-	void *library;
-	const LADSPA_Descriptor *klass;
-
-  iemladspa_audiobuf_t inbuf ;
-  iemladspa_audiobuf_t outbuf;
-  int stream_direction;
-
-	LADSPA_Control *control_data;
-	LADSPA_Handle *plugininstance;
-} snd_pcm_iemladspa_t;
 
 static void audiobuffer_free(iemladspa_audiobuf_t *iemladspa) {
   if(iemladspa->data)free(iemladspa->data);
