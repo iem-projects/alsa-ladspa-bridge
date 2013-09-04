@@ -492,11 +492,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   printf("channels= %d/%d + %d/%d\n", sourcechannels.in, sourcechannels.out, sinkchannels.in, sinkchannels.out);
 
-  if(1) {
-    const void*id=NULL;
-    snd_config_get_pointer(sconf, &id);
-    printf("SLAVE: %p = %d\n", id, snd_config_get_type(sconf));
-  }
 	/* Make sure we have a slave and control devices defined */
 	if (! sconf) {
 		SNDERR("No slave configuration for iemladspa pcm");
@@ -533,7 +528,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   print_pcm_config(sconf, "sconf");
 
 	/* Create the ALSA External Plugin */
-  printf("creating external plugin %p/%p\t%d/%d\n", root, sconf, stream, mode);
 	err = snd_pcm_extplug_create(&iemladspa->ext, name, root, sconf, stream, mode);
 	if (err < 0) {
     printf("extplug failed\n");
