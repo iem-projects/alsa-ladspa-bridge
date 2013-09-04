@@ -72,7 +72,7 @@ typedef struct snd_pcm_iemladspa {
 
   iemladspa_audiobuf_t inbuf ;
   iemladspa_audiobuf_t outbuf;
-
+  int stream_direction;
 
 	LADSPA_Control *control_data;
 	LADSPA_Handle *plugininstance;
@@ -181,6 +181,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 	
 	interleave(src, dst, size, channels);
 
+  iemladspa->stream_direction = ext->stream;
 	return size;
 }
 
@@ -333,6 +334,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	iemladspa->ext.name = "alsaiemladspa";
 	iemladspa->ext.callback = &iemladspa_callback;
 	iemladspa->ext.private_data = iemladspa;
+
+  iemladspa->stream_direction = -1;
 
 	/* Open the LADSPA Plugin */
 	iemladspa->library = LADSPAload(library);
