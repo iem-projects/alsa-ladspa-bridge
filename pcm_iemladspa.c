@@ -50,7 +50,7 @@ typedef struct _iemladspa_audiobuf {
 
 typedef struct snd_pcm_iemladspa {
   unsigned int usecount;
-	snd_pcm_extplug_t ext;
+	snd_pcm_extplug_t extIN, extOUT;
 
   snd_config_t   *sndconfig;
 
@@ -442,6 +442,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   long inchannels = 2;
   long outchannels = 2;
   unsigned int pcmchannels = 2;
+  snd_pcm_extplug_t*ext=NULL;
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
@@ -498,73 +499,75 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		return -EINVAL;
 	}
 
+  /* ========= init phase done ============ */
+
 	/* Intialize the local object data */
-	iemladspa = calloc(1, sizeof(*iemladspa));
+  iemladspa = iemladspa_mergeplugin_findorcreate(root,
+                                             library,
+                                             module,
+                                             controls,
+                                             sourcechannels, sinkchannels);
 	if (iemladspa == NULL)
 		return -ENOMEM;
 
-	iemladspa->ext.version = SND_PCM_EXTPLUG_VERSION;
-	iemladspa->ext.name = "alsaiemladspa";
-	iemladspa->ext.callback = &iemladspa_callback;
-	iemladspa->ext.private_data = iemladspa;
+  /* check whether we already have an ext for this stream,
+     if so, we are done;
+     if not, create a new one
+  */
 
-  iemladspa->stream_direction = -1;
+  if(SND_PCM_STREAM_PLAYBACK==stream) {
+    if(iemladspa->extOUT.private_data == iemladspa)return 0;
+    ext=&iemladspa->extOUT;
+  } else {
+    if(iemladspa->extIN.private_data == iemladspa)return 0;
+    ext=&iemladspa->extIN;
+  }
 
-	/* Open the LADSPA Plugin */
-	iemladspa->library = LADSPAload(library);
-  printf("LADSPAlib: %p\n", iemladspa->library);
-	if(iemladspa->library == NULL) {
-		return -1;
-	}
-
-	iemladspa->klass = LADSPAfind(iemladspa->library, library, module);
-  printf("LADSPAklass: %p\n", iemladspa->klass);
-
-	if(iemladspa->klass == NULL) {
-		return -1;
-	}
-
-  print_pcm_config(root, "root");
-  print_pcm_config(sconf, "sconf");
+	ext->version = SND_PCM_EXTPLUG_VERSION;
+	ext->name = "alsaiemladspa";
+	ext->callback = &iemladspa_callback;
+	ext->private_data = iemladspa;
 
 	/* Create the ALSA External Plugin */
-	err = snd_pcm_extplug_create(&iemladspa->ext, name, root, sconf, stream, mode);
+	err = snd_pcm_extplug_create(ext, name, root, sconf, stream, mode);
 	if (err < 0) {
     printf("extplug failed\n");
 		return err;
 	}
 
-  //printf("ROOT:\n"); print_pcm_extplug(&iemladspa->ext); printf(":ROOT \n");
+  //printf("ROOT:\n"); print_pcm_extplug(ext); printf(":ROOT \n");
 
 
 	/* MMAP to the controls file */
-  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
-                                            sourcechannels, sinkchannels);
-	if(iemladspa->control_data == NULL) {
-		return -1;
-	}
-
-	/* Make sure that the control file makes sense */
-  unsigned int j;
-
-  const unsigned long offset_in = iemladspa->control_data->num_controls;
-  const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
-
-  for(j=0; j<iemladspa->control_data->num_inchannels; j++) {
-    unsigned int index=iemladspa->control_data->data[offset_in + j].index;
-    if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
-       (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-      SNDERR("Problem with control file %s.", controls);
+  if(!iemladspa->control_data) {
+    iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
+                                              sourcechannels, sinkchannels);
+    if(iemladspa->control_data == NULL) {
       return -1;
     }
-  }
-  for(j=0; j<iemladspa->control_data->num_outchannels; j++) {
-    unsigned int index=iemladspa->control_data->data[offset_out+ j].index;
 
-    if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
-       (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-      SNDERR("Problem with control file %s.", controls);
-      return -1;
+    /* Make sure that the control file makes sense */
+    unsigned int j;
+
+    const unsigned long offset_in = iemladspa->control_data->num_controls;
+    const unsigned long offset_out = offset_in + iemladspa->control_data->num_inchannels;
+
+    for(j=0; j<iemladspa->control_data->num_inchannels; j++) {
+      unsigned int index=iemladspa->control_data->data[offset_in + j].index;
+      if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
+         (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
+        SNDERR("Problem with control file %s.", controls);
+        return -1;
+      }
+    }
+    for(j=0; j<iemladspa->control_data->num_outchannels; j++) {
+      unsigned int index=iemladspa->control_data->data[offset_out+ j].index;
+
+      if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
+         (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
+        SNDERR("Problem with control file %s.", controls);
+        return -1;
+      }
     }
   }
 
@@ -573,22 +576,22 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     ? iemladspa->control_data->sourcechannels.out
     : iemladspa->control_data->sinkchannels.in;
 
-  snd_pcm_extplug_set_param_minmax(&iemladspa->ext,
+  snd_pcm_extplug_set_param_minmax(ext,
                                    SND_PCM_EXTPLUG_HW_CHANNELS,
                                    pcmchannels,
                                    pcmchannels);
 
-  snd_pcm_extplug_set_slave_param(&iemladspa->ext,
+  snd_pcm_extplug_set_slave_param(ext,
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
                                   pcmchannels);
 
-	snd_pcm_extplug_set_param(&iemladspa->ext,
+	snd_pcm_extplug_set_param(ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 
-	snd_pcm_extplug_set_slave_param(&iemladspa->ext,
+	snd_pcm_extplug_set_slave_param(ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 
-	*pcmp = iemladspa->ext.pcm;
+	*pcmp = ext->pcm;
 	
 	return 0;
 
