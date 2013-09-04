@@ -58,14 +58,50 @@ static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
   printf("EXTPLUG: slave_channels=%d\n", ext->slave_channels);
 }
 
+typedef struct _iemladspa_audiobuf {
+  unsigned int frames;
+  unsigned int channels;
+  size_t size;
+  float *data;
+} iemladspa_audiobuf_t;
+
 typedef struct snd_pcm_iemladspa {
 	snd_pcm_extplug_t ext;
 	void *library;
 	const LADSPA_Descriptor *klass;
 	LADSPA_Control *control_data;
 	LADSPA_Handle *channelinstance;
-
 } snd_pcm_iemladspa_t;
+
+static void audiobuffer_free(iemladspa_audiobuf_t *iemladspa) {
+  if(iemladspa->data)free(iemladspa->data);
+  iemladspa->data=NULL;
+  iemladspa->frames=0;
+  iemladspa->channels=0;
+  iemladspa->size=0;
+}
+
+static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, unsigned int channels) {
+  size_t size=frames*channels;
+  if(size > buf->size) {
+    float*data=NULL;
+    size*=2; /* over-allocation */
+    data=realloc(buf->data, size*sizeof(float));
+    if(!data) {
+      audiobuffer_free(buf);
+      return 0;
+    }
+    buf->data=data;
+    buf->size = size;
+  }
+  if(frames != buf->frames || channels != buf->channels) {
+    /* frames/channels have changed, clear the buffer */
+    memset(buf->data, 0, size*sizeof(float));
+  }
+  buf->frames=frames;
+  buf->channels=channels;
+  return 1;
+}
 
 static inline void interleave(float *src, float *dst, int frames, int channels)
 {
