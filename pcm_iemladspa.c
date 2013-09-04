@@ -111,6 +111,7 @@ linked_list_t*linked_list_delete(linked_list_t*inlist, void*key) {
   }
   return inlist;
 }
+static linked_list_t*s_mergeplugin_list = NULL;
 
 
 
@@ -294,8 +295,15 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   /* check whether we are the last user of iemladspa */
   if((--(iemladspa->usecount))>0)
     return 0;
+
+	if(iemladspa->control_data)
     LADSPAcontrolUnMMAP(iemladspa->control_data);
+  iemladspa->control_data=NULL;
+  if(iemladspa->library)
     LADSPAunload(iemladspa->library);
+  iemladspa->library=NULL;
+
+  s_mergeplugin_list = linked_list_delete(s_mergeplugin_list, iemladspa->sndconfig);
 	free(iemladspa);
 	return 0;
 }
@@ -394,8 +402,6 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(snd_config_t *sndconfi
   return NULL;
 }
 
-
-static linked_list_t*s_mergeplugin_list = NULL;
 
 static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *sndconfig,
                                                             const char*libname,
