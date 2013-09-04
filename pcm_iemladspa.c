@@ -130,7 +130,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  snd_pcm_uframes_t src_offset,
 		  snd_pcm_uframes_t size)
 {
-	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
+	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
 	float *src, *dst;
 	int j;
   const unsigned long offset_in = iemladspa->control_data->num_controls;
@@ -174,7 +174,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 }
 
 static int iemladspa_close(snd_pcm_extplug_t *ext) {
-	snd_pcm_iemladspa_t *iemladspa = ext->private_data;
+	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
   printf("closing: %p", ext);
   print_pcm_extplug(ext);
 
@@ -199,7 +199,7 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 static LADSPA_Handle *s_plugininstance=NULL;
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
-	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
+	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
 	int i;
 
   print_pcm_extplug(ext);
