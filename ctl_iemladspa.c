@@ -293,7 +293,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	for(i = 0; i < iemladspa->num_input_controls; i++) {
 		if(iemladspa->control_data->data[i].type == LADSPA_CNTRL_INPUT) {
 			index = iemladspa->control_data->data[i].index;
-			if(iemladspa->klass->PortDescriptors[index] !=
+      if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
 				SNDERR("Problem with control file %s, %d.", controls, index);
 				return -1;
