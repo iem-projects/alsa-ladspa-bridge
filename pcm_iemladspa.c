@@ -173,8 +173,10 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                                  src + j*size);
   }
 
-  iemladspa->klass->run(iemladspa->plugininstance, size);
-	
+  /* only run when stream is in playback mode */
+  if(playback) {
+    iemladspa->klass->run(iemladspa->plugininstance, size);
+  }
 	interleave(src, dst, size, channels);
   //printf("instance=%p\tstream=%d\n", iemladspa->plugininstance, ext->stream);
 
