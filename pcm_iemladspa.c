@@ -70,7 +70,7 @@ typedef struct snd_pcm_iemladspa {
 	void *library;
 	const LADSPA_Descriptor *klass;
 	LADSPA_Control *control_data;
-	LADSPA_Handle *channelinstance;
+	LADSPA_Handle *plugininstance;
 } snd_pcm_iemladspa_t;
 
 static void audiobuffer_free(iemladspa_audiobuf_t *iemladspa) {
@@ -155,18 +155,18 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
     printf("connect  inport %d to %p\n", iemladspa->control_data->data[offset_in + j].index,  dst + j*size);
-		iemladspa->klass->connect_port(iemladspa->channelinstance,
+		iemladspa->klass->connect_port(iemladspa->plugininstance,
                                  iemladspa->control_data->data[offset_in + j].index,
                                  dst + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
     printf("connect outport %d to %p\n", iemladspa->control_data->data[offset_out+ j].index, src + j*size);
-		iemladspa->klass->connect_port(iemladspa->channelinstance,
+		iemladspa->klass->connect_port(iemladspa->plugininstance,
                                  iemladspa->control_data->data[offset_out+ j].index,
                                  src + j*size);
   }
 
-  iemladspa->klass->run(iemladspa->channelinstance, size);
+  iemladspa->klass->run(iemladspa->plugininstance, size);
 	
 	interleave(src, dst, size, channels);
 
@@ -179,14 +179,14 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   print_pcm_extplug(ext);
 
   if(iemladspa->klass->deactivate) {
-    iemladspa->klass->deactivate(iemladspa->channelinstance);
+    iemladspa->klass->deactivate(iemladspa->plugininstance);
   }
 
 
   /* TODO: Figure out why this segfaults */
 #if 1
   if(iemladspa->klass->cleanup) {
-    iemladspa->klass->cleanup(iemladspa->channelinstance);
+    iemladspa->klass->cleanup(iemladspa->plugininstance);
   }
 #endif
 
@@ -196,7 +196,7 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	return 0;
 }
 
-static LADSPA_Handle *s_channelinstance=NULL;
+static LADSPA_Handle *s_plugininstance=NULL;
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext;
@@ -205,21 +205,21 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
   print_pcm_extplug(ext);
 
 	/* Instantiate a LADSPA Plugin */
-  if(!s_channelinstance) {
-    s_channelinstance=iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
+  if(!s_plugininstance) {
+    s_plugininstance=iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
   }
 
-  iemladspa->channelinstance = s_channelinstance;
-  if(iemladspa->channelinstance == NULL) {
+  iemladspa->plugininstance = s_plugininstance;
+  if(iemladspa->plugininstance == NULL) {
     return -1;
   }
   if(iemladspa->klass->activate) {
-    iemladspa->klass->activate(iemladspa->channelinstance);
+    iemladspa->klass->activate(iemladspa->plugininstance);
   }
 
 	/* Connect controls to the LADSPA Plugin */
   for(i = 0; i < iemladspa->control_data->num_controls; i++) {
-    iemladspa->klass->connect_port(iemladspa->channelinstance,
+    iemladspa->klass->connect_port(iemladspa->plugininstance,
                                  iemladspa->control_data->data[i].index,
                                  &iemladspa->control_data->data[i].data);
 		}
