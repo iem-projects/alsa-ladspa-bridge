@@ -307,7 +307,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	/* Intialize the local object data */
-	iemladspa = calloc(1, sizeof(*iemladspa) + (inchannels+outchannels)*sizeof(LADSPA_Handle *));
+	iemladspa = calloc(1, sizeof(iemladspa));
 	if (iemladspa == NULL)
 		return -ENOMEM;
 
