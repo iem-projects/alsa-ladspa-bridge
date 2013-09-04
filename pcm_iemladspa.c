@@ -49,6 +49,7 @@ typedef struct _iemladspa_audiobuf {
 } iemladspa_audiobuf_t;
 
 typedef struct snd_pcm_iemladspa {
+  unsigned int usecount;
 	snd_pcm_extplug_t ext;
 
   snd_config_t   *sndconfig;
@@ -290,8 +291,11 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   }
 #endif
 
-	LADSPAcontrolUnMMAP(iemladspa->control_data);
-	LADSPAunload(iemladspa->library);
+  /* check whether we are the last user of iemladspa */
+  if((--(iemladspa->usecount))>0)
+    return 0;
+    LADSPAcontrolUnMMAP(iemladspa->control_data);
+    LADSPAunload(iemladspa->library);
 	free(iemladspa);
 	return 0;
 }
@@ -402,6 +406,8 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *ro
     iemladspa = iemladspa_mergeplugin_create(libname, module, controlfile, sourcechannels, sinkchannels);
     s_mergeplugin_list = linked_list_add(s_mergeplugin_list, root, iemladspa);
   }
+  if(iemladspa)
+    iemladspa->usecount++;
 
   return iemladspa;
 }
