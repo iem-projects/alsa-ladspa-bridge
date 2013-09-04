@@ -156,6 +156,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  snd_pcm_uframes_t src_offset,
 		  snd_pcm_uframes_t size)
 {
+#if 0
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
@@ -214,6 +215,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
              size, outchannels);
 
   iemladspa->stream_direction = ext->stream;
+#endif
 	return size;
 }
 
