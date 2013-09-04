@@ -64,6 +64,56 @@ typedef struct snd_pcm_iemladspa {
 	LADSPA_Handle *plugininstance;
 } snd_pcm_iemladspa_t;
 
+typedef struct linked_list {
+  void*key;
+  void*data;
+  struct linked_list *next;
+} linked_list_t;
+
+void*linked_list_find(linked_list_t*list, void*key) {
+  while(list) {
+    if(list->key == key)
+      return list->data;
+    list=list->next;
+  }
+  return NULL;
+}
+linked_list_t*linked_list_add(linked_list_t*list, void*key, void*data) {
+  linked_list_t*entry=(linked_list_t*)calloc(1, sizeof(linked_list_t));
+  entry->key=key;
+  entry->data=data;
+  entry->next=list;
+
+  return entry;
+}
+linked_list_t*linked_list_delete(linked_list_t*inlist, void*key) {
+  linked_list_t*list=inlist, *last=NULL;
+  while(list) {
+    if(list->key == key) {
+      /* found element, now delete it, repair the list and return it */
+      linked_list_t*next=list->next;
+      if(last) {
+        last->next=next;
+      } else {
+        inlist=list->next;
+      }
+
+      list->key=NULL;
+      list->data=NULL;
+      list->next=NULL;
+      free(list);
+
+      return inlist;
+    }
+    last=list;
+    list=list->next;
+  }
+  return inlist;
+}
+
+
+
+
 static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
 
   printf("EXTPLUG: %p\n", ext);
