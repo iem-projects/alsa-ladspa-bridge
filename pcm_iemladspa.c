@@ -236,7 +236,7 @@ static snd_pcm_extplug_callback_t iemladspa_callback = {
 SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 {
 	snd_config_iterator_t i, next;
-	snd_pcm_iemladspa_t *iemladspa;
+	snd_pcm_iemladspa_t *iemladspa=NULL;
 	snd_config_t *sconf = NULL;
 	const char *controls = ".alsaiemladspa.bin";
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
@@ -310,7 +310,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	}
 
 	/* Intialize the local object data */
-	iemladspa = calloc(1, sizeof(iemladspa));
+	iemladspa = calloc(1, sizeof(*iemladspa));
 	if (iemladspa == NULL)
 		return -ENOMEM;
 
