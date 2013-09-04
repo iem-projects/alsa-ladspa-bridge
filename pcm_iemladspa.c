@@ -154,10 +154,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                      iemladspa->control_data->sourcechannels.in +iemladspa->control_data->sinkchannels.in);
   audiobuffer_resize(&iemladspa->outbuf, size,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
-#if 0
-  printf("transfer: %p from %p to %p\n", ext, src_areas, dst_areas);
-  printf("transferring from %p to %p\n", src, dst);
-#endif
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
@@ -165,13 +161,13 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 
 	for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
-    printf("connect  inport %d to %p\n", iemladspa->control_data->data[offset_in + j].index,  dst + j*size);
+    //printf("connect  inport %d to %p\n", iemladspa->control_data->data[dataoffset_in + j].index,  dst + j*size);
 		iemladspa->klass->connect_port(iemladspa->plugininstance,
                                  iemladspa->control_data->data[offset_in + j].index,
                                  dst + j*size);
   }
 	for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
-    printf("connect outport %d to %p\n", iemladspa->control_data->data[offset_out+ j].index, src + j*size);
+    //printf("connect outport %d to %p\n", iemladspa->control_data->data[dataoffset_out+ j].index, src + j*size);
 		iemladspa->klass->connect_port(iemladspa->plugininstance,
                                  iemladspa->control_data->data[offset_out+ j].index,
                                  src + j*size);
@@ -180,6 +176,8 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   iemladspa->klass->run(iemladspa->plugininstance, size);
 	
 	interleave(src, dst, size, channels);
+  //printf("instance=%p\tstream=%d\n", iemladspa->plugininstance, ext->stream);
+
 
   iemladspa->stream_direction = ext->stream;
 	return size;
@@ -187,7 +185,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
-  printf("closing: %p\n", ext);
   print_pcm_extplug(ext);
 
   if(iemladspa->klass->deactivate) {
