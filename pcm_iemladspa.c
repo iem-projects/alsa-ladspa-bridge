@@ -68,6 +68,7 @@ static void print_pcm_config(snd_config_t*config, const char*name) {
   printf("SNDCONFIG[%p]: id[%d]=%s\n", config, err, str);
   err=snd_config_get_string(config, &str);
   printf("SNDCONFIG[%p]: string[%d]=%s\n", config, err, str);
+  printf("\n");
 }
 
 typedef struct _iemladspa_audiobuf {
@@ -278,6 +279,19 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 
 	return 0;
 }
+
+/*
+ * try to create an alsa ext plugin
+ * on success
+ *     find an existing iemladspa-plugin with the same root-config
+ *     on failure
+ *         create a new iemladspa-plugin
+ *     (on success)
+ *         add ourself to the iemladspa-plugin (and vice-versa 'private_data')
+ * on failure
+ *   return FAIL
+ */
+
 
 static snd_pcm_extplug_callback_t iemladspa_callback = {
 	.transfer = iemladspa_transfer,
