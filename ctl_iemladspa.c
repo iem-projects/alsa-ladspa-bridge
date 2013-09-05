@@ -250,7 +250,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	strncpy(iemladspa->ext.name, iemladspa->klass->Label, sizeof(iemladspa->ext.name));
 	strncpy(iemladspa->ext.longname, iemladspa->klass->Name,
           sizeof(iemladspa->ext.longname));
-	strncpy(iemladspa->ext.mixername, "alsaiemladspa", sizeof(iemladspa->ext.mixername));
+	strncpy(iemladspa->ext.mixername, "LADSPA ALSA", sizeof(iemladspa->ext.mixername));
 
 	/* Create the ALSA External Plugin */
 	err = snd_ctl_ext_create(&iemladspa->ext, name, SND_CTL_NONBLOCK);
