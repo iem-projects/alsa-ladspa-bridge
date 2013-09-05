@@ -114,11 +114,7 @@ linked_list_t*linked_list_delete(linked_list_t*inlist, void*key) {
 }
 static linked_list_t*s_mergeplugin_list = NULL;
 
-
-
-
 static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
-
   printf("EXTPLUG: %p\n", ext);
   printf("EXTPLUG: name=%s\n", ext->name);
   printf("EXTPLUG: version=%d\n", ext->version);
@@ -203,8 +199,7 @@ static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
                          LADSPA_Data * DataLocation,
                          const char*name) {
   //printf("connect %s\t %lu to %p\n", name, Port, DataLocation);
-  iemladspa->klass->connect_port(iemladspa->plugininstance,
-                               Port, DataLocation);
+  iemladspa->klass->connect_port(iemladspa->plugininstance, Port, DataLocation);
 }
 
 static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
@@ -279,7 +274,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
 static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
-  print_pcm_extplug(ext);
 
   /* check whether we are the last user of iemladspa */
   if((--(iemladspa->usecount))>0)
@@ -529,8 +523,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     SNDERR("could'nt create extplug '%s'.", name);
 		return err;
 	}
-
-  //printf("ROOT:\n"); print_pcm_extplug(ext); printf(":ROOT \n");
 
 	/* MMAP to the controls file */
   if(!iemladspa->control_data) {
