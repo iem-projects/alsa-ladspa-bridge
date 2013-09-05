@@ -248,7 +248,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  snd_pcm_uframes_t src_offset,
 		  snd_pcm_uframes_t size)
 {
-#if 0
+#if 1
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
@@ -317,13 +317,12 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 
   //printf("instance=%p\tstream=%d\n", iemladspa->plugininstance, ext->stream);
 
-#if 1
 	interleave(iemladspa->outbuf.data + bufoffset_out,
              dst,
              size, outchannels);
-#endif
+
   iemladspa->stream_direction = ext->stream;
-#endif
+#else
 
   //snd_pcm_areas_copy( dst_areas, dst_offset, src_areas, src_offset, ext->channels, size, 14);
   //print_pcm_extplug(ext);
@@ -332,6 +331,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   signal_get  ((src_areas->addr + (src_areas->first + src_areas->step * src_offset)/8), size, ext->channels);
   signal_const((dst_areas->addr + (dst_areas->first + dst_areas->step * dst_offset)/8), size, ext->channels);
 
+#endif
 	return size;
 }
 
