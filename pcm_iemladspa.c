@@ -159,7 +159,6 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
   size_t size=frames*channels;
   if(size > buf->size) {
     float*data=NULL;
-    //printf("realloc audiobuffer: %d->%d\n", buf->size, size);
     size*=2; /* over-allocation */
     data=realloc(buf->data, size*sizeof(float));
     if(!data) {
@@ -172,7 +171,6 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
   if(frames != buf->frames || channels != buf->channels) {
     /* frames/channels have changed, clear the buffer */
     memset(buf->data, 0, size*sizeof(float));
-    //printf("reset audiobuffer %d->%d %d->%d\n", buf->frames, frames, buf->channels, channels);
   }
   buf->frames=frames;
   buf->channels=channels;
@@ -181,11 +179,9 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
 
 static inline void interleave(float *src, float *dst, int frames, int channels)
 {
-  // printf("reinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
-      //printf("reinterleave %d -> %d\t%p -> %p\n", i+frames*j, i*channels+j, src+i+frames*j, dst+i*channels+j);
 			dst[i*channels + j] = src[i + frames*j];
 		}
 	}
@@ -193,44 +189,13 @@ static inline void interleave(float *src, float *dst, int frames, int channels)
 
 static inline void deinterleave(float *src, float *dst, int frames, int channels, int mode)
 {
-  //printf("deinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
-			//dst[i + frames*j] = src[i*channels + j];
-      float value = src[i*channels + j];
-      dst[i + frames*j] = value;
-      //printf("deinterleave %d -> %d\t%p -> %p\n", i*channels+j, i+frames*j, src+i*channels+j, dst+i+frames*j);
+      dst[i + frames*j] = src[i*channels + j];
 		}
 	}
 }
-
-#define CONST_TYPE int
-
-static inline void signal_const(void*dst_, int frames, int channels) {
-  CONST_TYPE *dst = (CONST_TYPE *)dst_;
-  CONST_TYPE value = 100;
-
-  int i, j;
-	for(i = 0; i < frames; i++){
-		for(j = 0; j < channels; j++){
-      dst[i + frames*j] = value;
-		}
-  }
-}
-
-static inline void signal_get(void*src_, int frames, int channels) {
-  CONST_TYPE *src = (CONST_TYPE *)src_;
-
-  CONST_TYPE value = src[0];
-
-  int   i = (int)  value;
-  float f = (float)value;
-
-  printf("src[0][0] = %d = %f\n", i, f);
-
-}
-
 
 static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
                          unsigned long Port,
@@ -248,7 +213,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 		  snd_pcm_uframes_t src_offset,
 		  snd_pcm_uframes_t size)
 {
-#if 1
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
@@ -277,17 +241,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   audiobuffer_resize(&iemladspa->outbuf, size,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
-#if 0
-  printf("\n");
-  print_pcm_extplug(ext);
-  printf("transfer: SRC: %p + (%d+%d*%d)/8 = %p\n", src_areas->addr, src_areas->first, src_areas->step, (int)src_offset, src);
-  printf("transfer: src: %p-%p\n",
-         iemladspa->inbuf.data,  iemladspa->inbuf.data+iemladspa->inbuf.size);
-  printf("transfer: dst: %p-%p\n",
-         iemladspa->outbuf.data, iemladspa->outbuf.data+iemladspa->outbuf.size);
-  printf("transfer: DST: %p + (%d+%d*%d)/8 = %p\n", dst_areas->addr, dst_areas->first, dst_areas->step, (int)dst_offset, dst);
-#endif
-
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
   deinterleave(src,
@@ -315,23 +268,11 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
 
-  //printf("instance=%p\tstream=%d\n", iemladspa->plugininstance, ext->stream);
-
 	interleave(iemladspa->outbuf.data + bufoffset_out,
              dst,
              size, outchannels);
 
   iemladspa->stream_direction = ext->stream;
-#else
-
-  //snd_pcm_areas_copy( dst_areas, dst_offset, src_areas, src_offset, ext->channels, size, 14);
-  //print_pcm_extplug(ext);
-
-
-  signal_get  ((src_areas->addr + (src_areas->first + src_areas->step * src_offset)/8), size, ext->channels);
-  signal_const((dst_areas->addr + (dst_areas->first + dst_areas->step * dst_offset)/8), size, ext->channels);
-
-#endif
 	return size;
 }
 
@@ -342,7 +283,6 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   if(iemladspa->klass->deactivate) {
     iemladspa->klass->deactivate(iemladspa->plugininstance);
   }
-
 
 #if 0
   /* TODO: Figure out why this segfaults */
@@ -372,8 +312,6 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
 	int i;
-
-  //print_pcm_extplug(ext);
 
 	/* Instantiate a LADSPA Plugin */
   if(!s_plugininstance) {
@@ -442,8 +380,6 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(snd_config_t *sndconfi
   success=1;
 
  finalize:
-  printf("LADSPAlib: %p\n", library);
-  printf("LADSPAklass: %p\n", klass);
 
   if(success) {
     snd_pcm_iemladspa_t*iemladspa=(snd_pcm_iemladspa_t*)calloc(1, sizeof(snd_pcm_iemladspa_t));
@@ -470,7 +406,6 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *sn
                                                             ) {
   /* find a 'iemladspa' instance with 'sndconfig' as sndconfig-configuration */
   snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, sndconfig);
-  printf("sndconfig=%p\n", sndconfig);
   if(!iemladspa) {
     iemladspa = iemladspa_mergeplugin_create(sndconfig, libname, module, controlfile, sourcechannels, sinkchannels);
     s_mergeplugin_list = linked_list_add(s_mergeplugin_list, sndconfig, iemladspa);
@@ -550,8 +485,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   sourcechannels.in = sourcechannels.out = inchannels;
   sinkchannels.in   = sinkchannels.out   = outchannels;
 
-  printf("channels= %d/%d + %d/%d\n", sourcechannels.in, sourcechannels.out, sinkchannels.in, sinkchannels.out);
-
 	/* Make sure we have a slave and control devices defined */
 	if (! sconf) {
 		SNDERR("No slave configuration for iemladspa pcm");
@@ -590,7 +523,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	/* Create the ALSA External Plugin */
 	err = snd_pcm_extplug_create(ext, name, root, sconf, stream, mode);
 	if (err < 0) {
-    printf("extplug failed\n");
+    SNDERR("could'nt create extplug '%s'.", name);
 		return err;
 	}
 

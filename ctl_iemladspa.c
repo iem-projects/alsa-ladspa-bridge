@@ -114,23 +114,12 @@ static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
   LADSPA_Data v = iemladspa->control_data->data[key].data;
 
-#if 0
-    fprintf(stderr, "reading %ul[%d]: %f\n", (unsigned int)(key), i, v);
-#endif
     if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
       value[0]= v * 100;
     } else {
       value[0] = ((v - iemladspa->control_info[key].min)/
                (iemladspa->control_info[key].max-
                 iemladspa->control_info[key].min))*100;
-#if 0
-      fprintf(stderr, "... %lu = 100 * (%f - %lu) / (%lu - %lu)\n",
-              (unsigned long)value, v,
-              iemladspa->control_info[key].min,
-              iemladspa->control_info[key].max,
-              iemladspa->control_info[key].min
-              );
-#endif
     }
 
   return sizeof(long);
