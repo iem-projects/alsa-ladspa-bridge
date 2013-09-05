@@ -205,6 +205,33 @@ static inline void deinterleave(float *src, float *dst, int frames, int channels
 	}
 }
 
+#define CONST_TYPE int
+
+static inline void signal_const(void*dst_, int frames, int channels) {
+  CONST_TYPE *dst = (CONST_TYPE *)dst_;
+  CONST_TYPE value = 100;
+
+  int i, j;
+	for(i = 0; i < frames; i++){
+		for(j = 0; j < channels; j++){
+      dst[i + frames*j] = value;
+		}
+  }
+}
+
+static inline void signal_get(void*src_, int frames, int channels) {
+  CONST_TYPE *src = (CONST_TYPE *)src_;
+
+  CONST_TYPE value = src[0];
+
+  int   i = (int)  value;
+  float f = (float)value;
+
+  printf("src[0][0] = %d = %f\n", i, f);
+
+}
+
+
 static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
                          unsigned long Port,
                          LADSPA_Data * DataLocation,
@@ -298,7 +325,12 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   iemladspa->stream_direction = ext->stream;
 #endif
 
-  snd_pcm_area_copy( dst_areas, dst_offset, src_areas, src_offset, size, SND_PCM_FORMAT_FLOAT);
+  //snd_pcm_areas_copy( dst_areas, dst_offset, src_areas, src_offset, ext->channels, size, 14);
+  //print_pcm_extplug(ext);
+
+
+  signal_get  ((src_areas->addr + (src_areas->first + src_areas->step * src_offset)/8), size, ext->channels);
+  signal_const((dst_areas->addr + (dst_areas->first + dst_areas->step * dst_offset)/8), size, ext->channels);
 
 	return size;
 }
