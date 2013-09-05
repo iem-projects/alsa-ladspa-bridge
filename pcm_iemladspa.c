@@ -181,7 +181,7 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
 
 static inline void interleave(float *src, float *dst, int frames, int channels)
 {
-  printf("reinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
+  // printf("reinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
@@ -193,7 +193,7 @@ static inline void interleave(float *src, float *dst, int frames, int channels)
 
 static inline void deinterleave(float *src, float *dst, int frames, int channels, int mode)
 {
-  printf("deinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
+  //printf("deinterleave: %p -> %p (%d/%d)\n", src, dst, frames, channels);
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
@@ -250,6 +250,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   audiobuffer_resize(&iemladspa->outbuf, size,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
+#if 0
   printf("\n");
   print_pcm_extplug(ext);
   printf("transfer: SRC: %p + (%d+%d*%d)/8 = %p\n", src_areas->addr, src_areas->first, src_areas->step, (int)src_offset, src);
@@ -258,7 +259,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   printf("transfer: dst: %p-%p\n",
          iemladspa->outbuf.data, iemladspa->outbuf.data+iemladspa->outbuf.size);
   printf("transfer: DST: %p + (%d+%d*%d)/8 = %p\n", dst_areas->addr, dst_areas->first, dst_areas->step, (int)dst_offset, dst);
-
+#endif
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
 		then swap it back during the interleave call below */
@@ -437,7 +438,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *sn
                                                             ) {
   /* find a 'iemladspa' instance with 'sndconfig' as sndconfig-configuration */
   snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, sndconfig);
-
+  printf("sndconfig=%p\n", sndconfig);
   if(!iemladspa) {
     iemladspa = iemladspa_mergeplugin_create(sndconfig, libname, module, controlfile, sourcechannels, sinkchannels);
     s_mergeplugin_list = linked_list_add(s_mergeplugin_list, sndconfig, iemladspa);
