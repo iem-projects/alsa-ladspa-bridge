@@ -40,6 +40,7 @@
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
+#define DEBUG() printf("%s:%d\t%s\n", __FILE__, __LINE__, __FUNCTION__)
 
 typedef struct _iemladspa_audiobuf {
   unsigned int frames;
@@ -280,20 +281,24 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
   print_pcm_extplug(ext);
 
-  if(iemladspa->klass->deactivate) {
-    iemladspa->klass->deactivate(iemladspa->plugininstance);
-  }
-
-#if 0
-  /* TODO: Figure out why this segfaults */
-  if(iemladspa->klass->cleanup) {
-    iemladspa->klass->cleanup(iemladspa->plugininstance);
-  }
-#endif
-
   /* check whether we are the last user of iemladspa */
   if((--(iemladspa->usecount))>0)
     return 0;
+
+  if(iemladspa->plugininstance) {
+    if(iemladspa->klass->deactivate) {
+      iemladspa->klass->deactivate(iemladspa->plugininstance);
+    }
+
+    /* TODO: Figure out why this segfaults */
+    if(iemladspa->klass->cleanup) {
+      iemladspa->klass->cleanup(iemladspa->plugininstance);
+    } else {
+      free(iemladspa->plugininstance);
+    }
+  }
+  iemladspa->plugininstance = NULL;
+
 
 	if(iemladspa->control_data)
     LADSPAcontrolUnMMAP(iemladspa->control_data);
@@ -307,23 +312,21 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 	return 0;
 }
 
-static LADSPA_Handle *s_plugininstance=NULL;
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
 	int i;
 
-	/* Instantiate a LADSPA Plugin */
-  if(!s_plugininstance) {
-    s_plugininstance=iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
-  }
+  if(!iemladspa->plugininstance) {
+    /* Instantiate a LADSPA Plugin */
+    iemladspa->plugininstance=iemladspa->klass->instantiate(iemladspa->klass, ext->rate);
 
-  iemladspa->plugininstance = s_plugininstance;
-  if(iemladspa->plugininstance == NULL) {
-    return -1;
-  }
-  if(iemladspa->klass->activate) {
-    iemladspa->klass->activate(iemladspa->plugininstance);
+    if(iemladspa->plugininstance == NULL) {
+      return -1;
+    }
+    if(iemladspa->klass->activate) {
+      iemladspa->klass->activate(iemladspa->plugininstance);
+    }
   }
 
 	/* Connect controls to the LADSPA Plugin */
