@@ -17,7 +17,8 @@ SND_CTL_OBJECTS = ctl_iemladspa.o ladspa_utils.o
 SND_CTL_LIBS =
 SND_CTL_BIN = libasound_module_ctl_iemladspa.so
 
-LIBDIR = lib
+MULTIARCH:=$(shell gcc --print-multiarch)
+LIBDIR = lib/$(MULTIARCH)
 
 .PHONY: all clean dep load_default
 
@@ -55,4 +56,3 @@ uninstall:
 	@echo Un-installing...
 	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_PCM_BIN)
 	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_CTL_BIN)
-
