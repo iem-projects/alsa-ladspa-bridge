@@ -481,6 +481,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   unsigned int pcmchannels = 2;
   snd_pcm_extplug_t*ext=NULL;
 
+  const unsigned int supported_formats[] = {SND_PCM_FORMAT_FLOAT, SND_PCM_FORMAT_S16};
+
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
@@ -624,11 +626,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	snd_pcm_extplug_set_slave_param(ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 #else
-	snd_pcm_extplug_set_param(ext,
-			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_S16);
-
-	snd_pcm_extplug_set_slave_param(ext,
-			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_S16);
+	snd_pcm_extplug_set_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
+                                 sizeof(supported_formats)/sizeof(*supported_formats),
+                                 supported_formats);
+	snd_pcm_extplug_set_slave_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
+                                 sizeof(supported_formats)/sizeof(*supported_formats),
+                                 supported_formats);
 #endif
 
 	*pcmp = ext->pcm;
