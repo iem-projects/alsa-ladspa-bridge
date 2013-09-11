@@ -481,7 +481,9 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   unsigned int pcmchannels = 2;
   snd_pcm_extplug_t*ext=NULL;
 
-  const unsigned int supported_formats[] = {SND_PCM_FORMAT_FLOAT, SND_PCM_FORMAT_S16};
+  const unsigned int supported_formats[] =
+	{SND_PCM_FORMAT_FLOAT};
+	//{SND_PCM_FORMAT_FLOAT, SND_PCM_FORMAT_S16};
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
