@@ -53,7 +53,7 @@ typedef struct snd_pcm_iemladspa {
   unsigned int usecount;
 	snd_pcm_extplug_t extIN, extOUT;
 
-  const void   *key;
+  const char   *key;
 
 	void *library;
 	const LADSPA_Descriptor *klass;
@@ -67,31 +67,31 @@ typedef struct snd_pcm_iemladspa {
 } snd_pcm_iemladspa_t;
 
 typedef struct linked_list {
-  const void*key;
+  const char*key;
   void*data;
   struct linked_list *next;
 } linked_list_t;
 
-void*linked_list_find(linked_list_t*list, const void*key) {
+void*linked_list_find(linked_list_t*list, const char*key) {
   while(list) {
-    if(list->key == key)
+    if(!strcmp(list->key,key))
       return list->data;
     list=list->next;
   }
   return NULL;
 }
-linked_list_t*linked_list_add(linked_list_t*list, const void*key, void*data) {
+linked_list_t*linked_list_add(linked_list_t*list, const char*key, void*data) {
   linked_list_t*entry=(linked_list_t*)calloc(1, sizeof(linked_list_t));
-  entry->key=key;
+  entry->key=strdup(key);
   entry->data=data;
   entry->next=list;
 
   return entry;
 }
-linked_list_t*linked_list_delete(linked_list_t*inlist, const void*key) {
+linked_list_t*linked_list_delete(linked_list_t*inlist, const char*key) {
   linked_list_t*list=inlist, *last=NULL;
   while(list) {
-    if(list->key == key) {
+    if(!strcmp(list->key,key)) {
       /* found element, now delete it, repair the list and return it */
       linked_list_t*next=list->next;
       if(last) {
@@ -99,7 +99,7 @@ linked_list_t*linked_list_delete(linked_list_t*inlist, const void*key) {
       } else {
         inlist=list->next;
       }
-
+      free((void*)(list->key));
       list->key=NULL;
       list->data=NULL;
       list->next=NULL;
@@ -346,6 +346,8 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   if(iemladspa->library)
     LADSPAunload(iemladspa->library);
   iemladspa->library=NULL;
+  free((void*)iemladspa->key);
+  iemladspa->key=NULL;
 
   s_mergeplugin_list = linked_list_delete(s_mergeplugin_list, iemladspa->key);
 	free(iemladspa);
@@ -398,7 +400,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  *   return FAIL
  */
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const char *key,
                                                       const char*libname,
                                                       const char*module,
                                                       const char*controlfile,
@@ -427,7 +429,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
   if(success) {
     snd_pcm_iemladspa_t*iemladspa=(snd_pcm_iemladspa_t*)calloc(1, sizeof(snd_pcm_iemladspa_t));
     if(!iemladspa)return NULL;
-    iemladspa->key              = key;
+    iemladspa->key              = strdup(key);
     iemladspa->library          = library;
     iemladspa->klass            = klass;
     iemladspa->control_data     = control_data;
@@ -441,7 +443,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
 }
 
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const void *key,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const char*key,
                                                             const char*libname,
                                                             const char*module,
                                                             const char*controlfile,
