@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2008 Cooper Street Innovations
  * 		<charles@cooper-street.com>
+ * Copyright (c) 2013 IOhannes m zmölnig - IEM
+ *		<zmoelnig@iem.at>
  *
  * This library is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
