@@ -53,7 +53,7 @@ typedef struct snd_pcm_iemladspa {
   unsigned int usecount;
 	snd_pcm_extplug_t extIN, extOUT;
 
-  void   *key;
+  const void   *key;
 
 	void *library;
 	const LADSPA_Descriptor *klass;
@@ -67,12 +67,12 @@ typedef struct snd_pcm_iemladspa {
 } snd_pcm_iemladspa_t;
 
 typedef struct linked_list {
-  void*key;
+  const void*key;
   void*data;
   struct linked_list *next;
 } linked_list_t;
 
-void*linked_list_find(linked_list_t*list, void*key) {
+void*linked_list_find(linked_list_t*list, const void*key) {
   while(list) {
     if(list->key == key)
       return list->data;
@@ -80,7 +80,7 @@ void*linked_list_find(linked_list_t*list, void*key) {
   }
   return NULL;
 }
-linked_list_t*linked_list_add(linked_list_t*list, void*key, void*data) {
+linked_list_t*linked_list_add(linked_list_t*list, const void*key, void*data) {
   linked_list_t*entry=(linked_list_t*)calloc(1, sizeof(linked_list_t));
   entry->key=key;
   entry->data=data;
@@ -88,7 +88,7 @@ linked_list_t*linked_list_add(linked_list_t*list, void*key, void*data) {
 
   return entry;
 }
-linked_list_t*linked_list_delete(linked_list_t*inlist, void*key) {
+linked_list_t*linked_list_delete(linked_list_t*inlist, const void*key) {
   linked_list_t*list=inlist, *last=NULL;
   while(list) {
     if(list->key == key) {
@@ -398,7 +398,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  *   return FAIL
  */
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(void *key,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
                                                       const char*libname,
                                                       const char*module,
                                                       const char*controlfile,
@@ -441,7 +441,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(void *key,
 }
 
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(void *key,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const void *key,
                                                             const char*libname,
                                                             const char*module,
                                                             const char*controlfile,
