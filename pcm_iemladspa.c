@@ -226,19 +226,19 @@ typedef void reinterleave_fun_t(float *src, void *dst_, int frames, int channels
 typedef void deinterleave_fun_t(void *src_, float *dst, int frames, int channels);
 
 static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
-                         unsigned long Port,
-                         LADSPA_Data * DataLocation,
-                         const char*name) {
+                                unsigned long Port,
+                                LADSPA_Data * DataLocation,
+                                const char*name) {
   //printf("connect %s\t %lu to %p\n", name, Port, DataLocation);
   iemladspa->klass->connect_port(iemladspa->plugininstance, Port, DataLocation);
 }
 
 static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
-		  const snd_pcm_channel_area_t *dst_areas,
-		  snd_pcm_uframes_t dst_offset,
-		  const snd_pcm_channel_area_t *src_areas,
-		  snd_pcm_uframes_t src_offset,
-		  snd_pcm_uframes_t size)
+                                            const snd_pcm_channel_area_t *dst_areas,
+                                            snd_pcm_uframes_t dst_offset,
+                                            const snd_pcm_channel_area_t *src_areas,
+                                            snd_pcm_uframes_t src_offset,
+                                            snd_pcm_uframes_t size)
 {
 	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
@@ -257,9 +257,9 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   /* first&step are given in bits, hence we device by 8
    */
 	void *src = (src_areas->addr +
-			(src_areas->first + src_areas->step * src_offset)/8);
+               (src_areas->first + src_areas->step * src_offset)/8);
 	void *dst = (dst_areas->addr +
-			(dst_areas->first + dst_areas->step * dst_offset)/8);	
+               (dst_areas->first + dst_areas->step * dst_offset)/8);
 
   deinterleave_fun_t*deinterleave = NULL;
   reinterleave_fun_t*reinterleave = NULL;
@@ -372,9 +372,9 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
 	/* Connect controls to the LADSPA Plugin */
   for(i = 0; i < iemladspa->control_data->num_controls; i++) {
     iemladspa->klass->connect_port(iemladspa->plugininstance,
-                                 iemladspa->control_data->data[i].index,
-                                 &iemladspa->control_data->data[i].data);
-		}
+                                   iemladspa->control_data->data[i].index,
+                                   &iemladspa->control_data->data[i].data);
+  }
 
   audiobuffer_resize(&iemladspa->inbuf,
                      65536,
@@ -399,11 +399,11 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  */
 
 static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
-                                                      const char*libname,
-                                                      const char*module,
-                                                      const char*controlfile,
-                                                      iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
-                                                      ) {
+                                                          const char*libname,
+                                                          const char*module,
+                                                          const char*controlfile,
+                                                          iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
+                                                          ) {
 	void *library = NULL;
 	const LADSPA_Descriptor *klass=NULL;
 	LADSPA_Control *control_data= NULL;
@@ -442,11 +442,11 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
 
 
 static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const void *key,
-                                                            const char*libname,
-                                                            const char*module,
-                                                            const char*controlfile,
-                                                            iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
-                                                            ) {
+                                                                const char*libname,
+                                                                const char*module,
+                                                                const char*controlfile,
+                                                                iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
+                                                                ) {
   /* find a 'iemladspa' instance with 'key' */
   snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, key);
   if(!iemladspa) {
@@ -518,8 +518,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 			snd_config_get_string(n, &fmt);
 			format=snd_pcm_format_value(fmt);
 			if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
-        			SNDERR("format must be %s or %s", snd_pcm_format_name(SND_PCM_FORMAT_S16), snd_pcm_format_name(SND_PCM_FORMAT_FLOAT));
-			        return -EINVAL;
+        SNDERR("format must be %s or %s", snd_pcm_format_name(SND_PCM_FORMAT_S16), snd_pcm_format_name(SND_PCM_FORMAT_FLOAT));
+        return -EINVAL;
 
 			}
 			continue;
@@ -567,10 +567,10 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
 	/* Intialize the local object data */
   iemladspa = iemladspa_mergeplugin_findorcreate(configname,
-                                             library,
-                                             module,
-                                             controls,
-                                             sourcechannels, sinkchannels);
+                                                 library,
+                                                 module,
+                                                 controls,
+                                                 sourcechannels, sinkchannels);
 	if (iemladspa == NULL)
 		return -ENOMEM;
 
@@ -602,7 +602,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	/* MMAP to the controls file */
   if(!iemladspa->control_data) {
     iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
-                                              sourcechannels, sinkchannels);
+                                                sourcechannels, sinkchannels);
     if(iemladspa->control_data == NULL) {
       return -1;
     }

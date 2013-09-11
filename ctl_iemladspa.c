@@ -61,7 +61,7 @@ static int iemladspa_elem_count(snd_ctl_ext_t *ext)
 }
 
 static int iemladspa_elem_list(snd_ctl_ext_t *ext, unsigned int offset,
-                             snd_ctl_elem_id_t *id)
+                               snd_ctl_elem_id_t *id)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	snd_ctl_elem_id_set_interface(id, SND_CTL_ELEM_IFACE_MIXER);
@@ -71,7 +71,7 @@ static int iemladspa_elem_list(snd_ctl_ext_t *ext, unsigned int offset,
 }
 
 static snd_ctl_ext_key_t iemladspa_find_elem(snd_ctl_ext_t *ext,
-                                           const snd_ctl_elem_id_t *id)
+                                             const snd_ctl_elem_id_t *id)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	const char *name;
@@ -90,7 +90,7 @@ static snd_ctl_ext_key_t iemladspa_find_elem(snd_ctl_ext_t *ext,
 }
 
 static int iemladspa_get_attribute(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-                                 int *type, unsigned int *acc, unsigned int *count)
+                                   int *type, unsigned int *acc, unsigned int *count)
 {
 	*type = SND_CTL_ELEM_TYPE_INTEGER;
 	*acc = SND_CTL_EXT_ACCESS_READWRITE;
@@ -99,7 +99,7 @@ static int iemladspa_get_attribute(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 }
 
 static int iemladspa_get_integer_info(snd_ctl_ext_t *ext,
-                                    snd_ctl_ext_key_t key, long *imin, long *imax, long *istep)
+                                      snd_ctl_ext_key_t key, long *imin, long *imax, long *istep)
 {
 	*istep = 1;
 	*imin = 0;
@@ -109,25 +109,25 @@ static int iemladspa_get_integer_info(snd_ctl_ext_t *ext,
 
 /* read data from ladspa-plugin */
 static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-                                long *value)
+                                  long *value)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
   LADSPA_Data v = iemladspa->control_data->data[key].data;
 
-    if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-      value[0]= v * 100;
-    } else {
-      value[0] = ((v - iemladspa->control_info[key].min)/
-               (iemladspa->control_info[key].max-
-                iemladspa->control_info[key].min))*100;
-    }
+  if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
+    value[0]= v * 100;
+  } else {
+    value[0] = ((v - iemladspa->control_info[key].min)/
+                (iemladspa->control_info[key].max-
+                 iemladspa->control_info[key].min))*100;
+  }
 
   return sizeof(long);
 }
 
 /* write data to ladspa-plugin */
 static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
-                                 long *value)
+                                   long *value)
 {
 	snd_ctl_iemladspa_t *iemladspa = ext->private_data;
 	float setting;
@@ -146,8 +146,8 @@ static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 }
 
 static int iemladspa_read_event(snd_ctl_ext_t *ext ATTRIBUTE_UNUSED,
-                              snd_ctl_elem_id_t *id ATTRIBUTE_UNUSED,
-                              unsigned int *event_mask ATTRIBUTE_UNUSED)
+                                snd_ctl_elem_id_t *id ATTRIBUTE_UNUSED,
+                                unsigned int *event_mask ATTRIBUTE_UNUSED)
 {
 	return -EAGAIN;
 }
@@ -260,7 +260,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 
 	/* MMAP to the controls file */
   iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
-                                            sourcechannels, sinkchannels);
+                                              sourcechannels, sinkchannels);
 	if(iemladspa->control_data == NULL) {
 		return -1;
 	}
@@ -274,7 +274,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 	
 	/* Pull in data from controls file */
 	iemladspa->control_info = malloc(
-                                 sizeof(snd_ctl_iemladspa_control_t)*iemladspa->num_input_controls);
+                                   sizeof(snd_ctl_iemladspa_control_t)*iemladspa->num_input_controls);
 	if(iemladspa->control_info == NULL) {
 		return -1;
 	}

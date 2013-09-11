@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
    Free software by Richard W.E. Furse. Do with as you will. No
    warranty.
-  ------------------------------------------------------------------*/
+   ------------------------------------------------------------------*/
 
 #include <stdio.h>
 #include <unistd.h>
@@ -26,54 +26,54 @@
 typedef struct stat Stat;
 static int do_mkdir(const char *path, mode_t mode)
 {
-    Stat            st;
-    int             status = 0;
+  Stat            st;
+  int             status = 0;
 
-    if (stat(path, &st) != 0)
+  if (stat(path, &st) != 0)
     {
-        /* Directory does not exist. EEXIST for race condition */
-        if (mkdir(path, mode) != 0 && errno != EEXIST)
-            status = -1;
-    }
-    else if (!S_ISDIR(st.st_mode))
-    {
-        errno = ENOTDIR;
+      /* Directory does not exist. EEXIST for race condition */
+      if (mkdir(path, mode) != 0 && errno != EEXIST)
         status = -1;
     }
+  else if (!S_ISDIR(st.st_mode))
+    {
+      errno = ENOTDIR;
+      status = -1;
+    }
 
-    return(status);
+  return(status);
 }
 
 /**
-** mkpath - ensure all directories in path exist
-** Algorithm takes the pessimistic view and works top-down to ensure
-** each directory in path exists, rather than optimistically creating
-** the last element and working backwards.
-*/
+ ** mkpath - ensure all directories in path exist
+ ** Algorithm takes the pessimistic view and works top-down to ensure
+ ** each directory in path exists, rather than optimistically creating
+ ** the last element and working backwards.
+ */
 int mkpath(const char *path, mode_t mode)
 {
-    char           *pp;
-    char           *sp;
-    int             status;
-    char           *copypath = strdup(path);
+  char           *pp;
+  char           *sp;
+  int             status;
+  char           *copypath = strdup(path);
 
-    status = 0;
-    pp = copypath;
-    while (status == 0 && (sp = strchr(pp, '/')) != 0)
+  status = 0;
+  pp = copypath;
+  while (status == 0 && (sp = strchr(pp, '/')) != 0)
     {
-        if (sp != pp)
+      if (sp != pp)
         {
-            /* Neither root nor double slash in path */
-            *sp = '\0';
-            status = do_mkdir(copypath, mode);
-            *sp = '/';
+          /* Neither root nor double slash in path */
+          *sp = '\0';
+          status = do_mkdir(copypath, mode);
+          *sp = '/';
         }
-        pp = sp + 1;
+      pp = sp + 1;
     }
-    if (status == 0)
-        status = do_mkdir(path, mode);
-    free(copypath);
-    return (status);
+  if (status == 0)
+    status = do_mkdir(path, mode);
+  free(copypath);
+  return (status);
 }
 
 /* ------------------------------------------------------------------ */
@@ -120,30 +120,30 @@ dlopenLADSPA(const char * pcFilename, int iFlag) {
 
       pcStart = pcLADSPAPath;
       while (*pcStart != '\0') {
-	pcEnd = pcStart;
-	while (*pcEnd != ':' && *pcEnd != '\0')
-	  pcEnd++;
+        pcEnd = pcStart;
+        while (*pcEnd != ':' && *pcEnd != '\0')
+          pcEnd++;
 
-	pcBuffer = malloc(iFilenameLength + 2 + (pcEnd - pcStart));
-	if (pcEnd > pcStart)
-	  strncpy(pcBuffer, pcStart, pcEnd - pcStart);
-	iNeedSlash = 0;
-	if (pcEnd > pcStart)
-	  if (*(pcEnd - 1) != '/') {
-	    iNeedSlash = 1;
-	    pcBuffer[pcEnd - pcStart] = '/';
-	  }
-	strcpy(pcBuffer + iNeedSlash + (pcEnd - pcStart), pcFilename);
+        pcBuffer = malloc(iFilenameLength + 2 + (pcEnd - pcStart));
+        if (pcEnd > pcStart)
+          strncpy(pcBuffer, pcStart, pcEnd - pcStart);
+        iNeedSlash = 0;
+        if (pcEnd > pcStart)
+          if (*(pcEnd - 1) != '/') {
+            iNeedSlash = 1;
+            pcBuffer[pcEnd - pcStart] = '/';
+          }
+        strcpy(pcBuffer + iNeedSlash + (pcEnd - pcStart), pcFilename);
 
-	pvResult = dlopen(pcBuffer, iFlag);
+        pvResult = dlopen(pcBuffer, iFlag);
 
-	free(pcBuffer);
-	if (pvResult != NULL)
-	  return pvResult;
+        free(pcBuffer);
+        if (pvResult != NULL)
+          return pvResult;
 
-	pcStart = pcEnd;
-	if (*pcStart == ':')
-	  pcStart++;
+        pcStart = pcEnd;
+        if (*pcStart == ':')
+          pcStart++;
       }
     }
   }
@@ -183,9 +183,9 @@ void * LADSPAload(const char * pcPluginFilename) {
   pvPluginHandle = dlopenLADSPA(pcPluginFilename, RTLD_NOW);
   if (!pvPluginHandle) {
     fprintf(stderr,
-	    "Failed to load plugin \"%s\": %s\n",
-	    pcPluginFilename,
-	    dlerror());
+            "Failed to load plugin \"%s\": %s\n",
+            pcPluginFilename,
+            dlerror());
     exit(1);
   }
 
@@ -198,8 +198,8 @@ void LADSPAunload(void * pvLADSPAPluginLibrary) {
 }
 
 const LADSPA_Descriptor * LADSPAfind(void * pvLADSPAPluginLibrary,
-			   const char * pcPluginLibraryFilename,
-			   const char * pcPluginLabel) {
+                                     const char * pcPluginLibraryFilename,
+                                     const char * pcPluginLabel) {
 
   const LADSPA_Descriptor * psDescriptor;
   LADSPA_Descriptor_Function pfDescriptorFunction;
@@ -208,16 +208,16 @@ const LADSPA_Descriptor * LADSPAfind(void * pvLADSPAPluginLibrary,
   dlerror();
   pfDescriptorFunction
     = (LADSPA_Descriptor_Function)dlsym(pvLADSPAPluginLibrary,
-					"ladspa_descriptor");
+                                        "ladspa_descriptor");
   if (!pfDescriptorFunction) {
     const char * pcError = dlerror();
     if (pcError) {
       fprintf(stderr,
-	      "Unable to find ladspa_descriptor() function in plugin "
-	      "library file \"%s\": %s.\n"
-	      "Are you sure this is a LADSPA plugin file?\n",
-	      pcPluginLibraryFilename,
-	      pcError);
+              "Unable to find ladspa_descriptor() function in plugin "
+              "library file \"%s\": %s.\n"
+              "Are you sure this is a LADSPA plugin file?\n",
+              pcPluginLibraryFilename,
+              pcError);
       exit(1);
     }
   }
@@ -226,9 +226,9 @@ const LADSPA_Descriptor * LADSPAfind(void * pvLADSPAPluginLibrary,
     psDescriptor = pfDescriptorFunction(lPluginIndex);
     if (psDescriptor == NULL) {
       fprintf(stderr,
-	      "Unable to find label \"%s\" in plugin library file \"%s\".\n",
-	      pcPluginLabel,
-	      pcPluginLibraryFilename);
+              "Unable to find label \"%s\" in plugin library file \"%s\".\n",
+              pcPluginLabel,
+              pcPluginLibraryFilename);
       exit(1);
     }
     if (strcmp(psDescriptor->Label, pcPluginLabel) == 0)
@@ -239,8 +239,8 @@ const LADSPA_Descriptor * LADSPAfind(void * pvLADSPAPluginLibrary,
 /* ------------------------------------------------------------------ */
 
 int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
-		 const unsigned long          lSampleRate,
-		 LADSPA_Data                * pfResult) {
+                  const unsigned long          lSampleRate,
+                  LADSPA_Data                * pfResult) {
 
   int iHintDescriptor;
 
@@ -257,11 +257,11 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
   case LADSPA_HINT_DEFAULT_LOW:
     if (LADSPA_IS_HINT_LOGARITHMIC(iHintDescriptor)) {
       *pfResult = exp(log(psPortRangeHint->LowerBound) * 0.75
-		      + log(psPortRangeHint->UpperBound) * 0.25);
+                      + log(psPortRangeHint->UpperBound) * 0.25);
     }
     else {
       *pfResult = (psPortRangeHint->LowerBound * 0.75
-		   + psPortRangeHint->UpperBound * 0.25);
+                   + psPortRangeHint->UpperBound * 0.25);
     }
     if (LADSPA_IS_HINT_SAMPLE_RATE(psPortRangeHint->HintDescriptor))
       *pfResult *= lSampleRate;
@@ -269,11 +269,11 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
   case LADSPA_HINT_DEFAULT_MIDDLE:
     if (LADSPA_IS_HINT_LOGARITHMIC(iHintDescriptor)) {
       *pfResult = sqrt(psPortRangeHint->LowerBound
-		       * psPortRangeHint->UpperBound);
+                       * psPortRangeHint->UpperBound);
     }
     else {
       *pfResult = 0.5 * (psPortRangeHint->LowerBound
-			 + psPortRangeHint->UpperBound);
+                         + psPortRangeHint->UpperBound);
     }
     if (LADSPA_IS_HINT_SAMPLE_RATE(psPortRangeHint->HintDescriptor))
       *pfResult *= lSampleRate;
@@ -281,11 +281,11 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
   case LADSPA_HINT_DEFAULT_HIGH:
     if (LADSPA_IS_HINT_LOGARITHMIC(iHintDescriptor)) {
       *pfResult = exp(log(psPortRangeHint->LowerBound) * 0.25
-		      + log(psPortRangeHint->UpperBound) * 0.75);
+                      + log(psPortRangeHint->UpperBound) * 0.75);
     }
     else {
       *pfResult = (psPortRangeHint->LowerBound * 0.25
-		   + psPortRangeHint->UpperBound * 0.75);
+                   + psPortRangeHint->UpperBound * 0.75);
     }
     if (LADSPA_IS_HINT_SAMPLE_RATE(psPortRangeHint->HintDescriptor))
       *pfResult *= lSampleRate;
@@ -394,11 +394,11 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 	if(fd < 0) {
 		if(errno == ENOENT){
 			/* If the file doesn't exist create it and populate
-				it with default data. */
+         it with default data. */
 			fd = open(filename, O_RDWR | O_CREAT, 0664);
 			if(fd < 0) {
 				fprintf(stderr, "Failed to open controls file:%s.\n",
-						filename);
+                filename);
 				free(filename);
 				return NULL;
 			}
@@ -422,10 +422,10 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 
 			for(i = 0, index=0, iindex=0, oindex=0; i < psDescriptor->PortCount; i++) {
 				if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_CONTROL) {
-						default_controls->data[0+index].index = i;
+          default_controls->data[0+index].index = i;
 
-						LADSPADefault(&psDescriptor->PortRangeHints[i], 44100,
-								&default_controls->data[0+index].data);
+          LADSPADefault(&psDescriptor->PortRangeHints[i], 44100,
+                        &default_controls->data[0+index].data);
 
 					if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_INPUT) {
 						default_controls->data[0+index].type = LADSPA_CNTRL_INPUT;
@@ -435,21 +435,21 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 					index++;
 
 				} else if(psDescriptor->PortDescriptors[i] ==
-						(LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
+                  (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
 					default_controls->data[num_controls+iindex].index = i;
           iindex++;
 
 				} else if(psDescriptor->PortDescriptors[i] ==
-						(LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
+                  (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
 					default_controls->data[num_controls+num_inchannels + oindex].index = i;
           oindex++;
 				}
 			}
 #if 0
 			if((default_controls->output == NULL) ||
-				(default_controls->input == NULL)) {
-					fprintf(stderr,
-						"LADSPA Plugin must have one audio channel\n");
+         (default_controls->input == NULL)) {
+        fprintf(stderr,
+                "LADSPA Plugin must have one audio channel\n");
 				free(default_controls);
 				free(filename);
 				return NULL;
@@ -471,7 +471,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 
 	/* MMap Configuration File */
 	ptr = (LADSPA_Control*)mmap(NULL, length,
-			PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+                              PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	close (fd);
 
 	if(ptr == MAP_FAILED) {
@@ -482,7 +482,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 	/* Make sure we're mapped to the right file type. */
 	if(ptr->length != length) {
 		fprintf(stderr, "%s is the wrong length.\n",
-				filename);
+            filename);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;
@@ -490,7 +490,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 
 	if(ptr->id != psDescriptor->UniqueID) {
 		fprintf(stderr, "%s is not a control file for ladspa id %ld.\n",
-				filename, ptr->id);
+            filename, ptr->id);
 		LADSPAcontrolUnMMAP(ptr);
 		free(filename);
 		return NULL;
