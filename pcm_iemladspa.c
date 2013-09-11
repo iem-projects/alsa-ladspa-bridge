@@ -480,6 +480,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   long outchannels = 2;
   unsigned int pcmchannels = 2;
   snd_pcm_extplug_t*ext=NULL;
+  const char *configname = NULL;
 
   const unsigned int supported_formats[] =
 	{SND_PCM_FORMAT_FLOAT};
@@ -487,6 +488,9 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   print_pcm_config(conf, "conf");
   print_pcm_config(root, "root");
+
+  if (snd_config_get_id(conf, &configname) < 0)
+    configname=NULL;
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
@@ -546,7 +550,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   /* ========= init phase done ============ */
 
 	/* Intialize the local object data */
-  iemladspa = iemladspa_mergeplugin_findorcreate(root,
+  iemladspa = iemladspa_mergeplugin_findorcreate(configname,
                                              library,
                                              module,
                                              controls,
