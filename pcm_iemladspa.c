@@ -138,9 +138,9 @@ static void print_pcm_config(snd_config_t*config, const char*name) {
 
   printf("SNDCONFIG[%p]: '%s'=[%d]\n", config, name, snd_config_get_type(config));
   err=snd_config_get_id(config, &str);
-  printf("SNDCONFIG[%p]: id[%d]=%s\n", config, err, str);
+  printf("SNDCONFIG[%p]: id[%d]=%p: %s\n", config, err, str, str);
   err=snd_config_get_string(config, &str);
-  printf("SNDCONFIG[%p]: string[%d]=%s\n", config, err, str);
+  printf("SNDCONFIG[%p]: string[%d]=%p: %s\n", config, err, str, str);
   printf("\n");
 }
 
