@@ -53,7 +53,7 @@ typedef struct snd_pcm_iemladspa {
   unsigned int usecount;
 	snd_pcm_extplug_t extIN, extOUT;
 
-  snd_config_t   *sndconfig;
+  void   *key;
 
 	void *library;
 	const LADSPA_Descriptor *klass;
@@ -347,7 +347,7 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
     LADSPAunload(iemladspa->library);
   iemladspa->library=NULL;
 
-  s_mergeplugin_list = linked_list_delete(s_mergeplugin_list, iemladspa->sndconfig);
+  s_mergeplugin_list = linked_list_delete(s_mergeplugin_list, iemladspa->key);
 	free(iemladspa);
 	return 0;
 }
@@ -398,7 +398,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  *   return FAIL
  */
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(snd_config_t *sndconfig,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(void *key,
                                                       const char*libname,
                                                       const char*module,
                                                       const char*controlfile,
@@ -427,7 +427,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(snd_config_t *sndconfi
   if(success) {
     snd_pcm_iemladspa_t*iemladspa=(snd_pcm_iemladspa_t*)calloc(1, sizeof(snd_pcm_iemladspa_t));
     if(!iemladspa)return NULL;
-    iemladspa->sndconfig        = sndconfig;
+    iemladspa->key              = key;
     iemladspa->library          = library;
     iemladspa->klass            = klass;
     iemladspa->control_data     = control_data;
@@ -441,17 +441,17 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(snd_config_t *sndconfi
 }
 
 
-static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(snd_config_t *sndconfig,
+static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(void *key,
                                                             const char*libname,
                                                             const char*module,
                                                             const char*controlfile,
                                                             iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
                                                             ) {
-  /* find a 'iemladspa' instance with 'sndconfig' as sndconfig-configuration */
-  snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, sndconfig);
+  /* find a 'iemladspa' instance with 'key' */
+  snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, key);
   if(!iemladspa) {
-    iemladspa = iemladspa_mergeplugin_create(sndconfig, libname, module, controlfile, sourcechannels, sinkchannels);
-    s_mergeplugin_list = linked_list_add(s_mergeplugin_list, sndconfig, iemladspa);
+    iemladspa = iemladspa_mergeplugin_create(key, libname, module, controlfile, sourcechannels, sinkchannels);
+    s_mergeplugin_list = linked_list_add(s_mergeplugin_list, key, iemladspa);
   }
   if(iemladspa)
     iemladspa->usecount++;
