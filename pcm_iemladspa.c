@@ -482,9 +482,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   snd_pcm_extplug_t*ext=NULL;
   const char *configname = NULL;
 
-  const unsigned int supported_formats[] =
-	{SND_PCM_FORMAT_FLOAT};
-	//{SND_PCM_FORMAT_FLOAT, SND_PCM_FORMAT_S16};
+  unsigned int format = SND_PCM_FORMAT_S16;
 
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
@@ -512,6 +510,17 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		}
 		if (strcmp(id, "module") == 0) {
 			snd_config_get_string(n, &module);
+			continue;
+		}
+		if (strcmp(id, "format") == 0) {
+			const char*fmt=NULL;
+			snd_config_get_string(n, &fmt);
+			format=snd_pcm_format_value(fmt);
+			if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
+        			SNDERR("format must be FLOAT or S16");
+			        return -EINVAL;
+
+			}
 			continue;
 		}
 		if (strcmp(id, "inchannels") == 0) {
@@ -626,12 +635,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
                                   pcmchannels);
 
-	snd_pcm_extplug_set_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
-                                 sizeof(supported_formats)/sizeof(*supported_formats),
-                                 supported_formats);
-	snd_pcm_extplug_set_slave_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
-                                 sizeof(supported_formats)/sizeof(*supported_formats),
-                                 supported_formats);
+  snd_pcm_extplug_set_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
+  snd_pcm_extplug_set_slave_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
 
 	*pcmp = ext->pcm;
 	
