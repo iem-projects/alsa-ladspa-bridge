@@ -486,16 +486,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	{SND_PCM_FORMAT_FLOAT};
 	//{SND_PCM_FORMAT_FLOAT, SND_PCM_FORMAT_S16};
 
-  print_pcm_config(conf, "conf");
-  print_pcm_config(root, "root");
-
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
 
 	/* Parse configuration options from asoundrc */
 	snd_config_for_each(i, next, conf) {
 		snd_config_t *n = snd_config_iterator_entry(i);
-    print_pcm_config(root, "N...");
 
 		const char *id;
 		if (snd_config_get_id(n, &id) < 0)
