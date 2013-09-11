@@ -471,7 +471,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 	snd_config_iterator_t i, next;
 	snd_pcm_iemladspa_t *iemladspa=NULL;
 	snd_config_t *sconf = NULL;
-	const char *controls = ".alsaiemladspa.bin";
+	const char *controls = NULL;
+  char *default_controls=NULL;
 	const char *library = "/usr/lib/ladspa/iemladspa.so";
 	const char *module = "iemladspa";
 	int err;
@@ -551,6 +552,16 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 		SNDERR("No slave configuration for iemladspa pcm");
 		return -EINVAL;
 	}
+
+  if(!controls) {
+    default_controls=(char*)calloc(strlen(configname)+5, 1);
+    if(!default_controls) {
+      SNDERR("unable to allocate memory for '%s.bin'", configname);
+      return -EINVAL;
+    }
+    sprintf(default_controls, "%s.bin", configname);
+    controls=default_controls;
+  }
 
   /* ========= init phase done ============ */
 
@@ -639,6 +650,9 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   snd_pcm_extplug_set_slave_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
 
 	*pcmp = ext->pcm;
+
+  if(default_controls)
+    free(default_controls);
 	
 	return 0;
 
