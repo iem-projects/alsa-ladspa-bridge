@@ -20,12 +20,6 @@ Download the latest version of the plugin and:
  make
  sudo make install
 
-on Debian (and derivatives) with multi-arch support, you might have to change
-the final step to
-
- sudo make install LIBDIR=lib/$(dpkg-architecture -qDEB_BUILD_MULTIARCH)
-
-
 DEPENDENCIES:
 - LADSPA-SDK
 - ALSA Development headers and alsa-lib -- you may already have it
