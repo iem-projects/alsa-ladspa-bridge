@@ -13,6 +13,9 @@
 #include <string.h>
 #include <math.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
@@ -283,15 +286,21 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		}
 		sprintf(filename, "%s", controls_filename);
 	} else {
+    const char*subdir="/.config/alsa.iem.at/";
 		homePath = getenv("HOME");
 		if (homePath==NULL) {
 			return NULL;
 		}
-		filename = malloc(strlen(controls_filename) + strlen(homePath) + 2);
+		filename = malloc(strlen(controls_filename) + strlen(subdir) + strlen(homePath) + 1);
 		if (filename==NULL) {
 			return NULL;
 		}
-		sprintf(filename, "%s/%s", homePath, controls_filename);
+		sprintf(filename, "%s%s", homePath, subdir);
+    if(mkdir(filename, 0770)) {
+      return NULL;
+    }
+
+		sprintf(filename, "%s%s%s", homePath, subdir, controls_filename);
 	}
 
 	/* Count the number of controls */
