@@ -517,7 +517,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 			snd_config_get_string(n, &fmt);
 			format=snd_pcm_format_value(fmt);
 			if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
-        			SNDERR("format must be FLOAT or S16");
+        			SNDERR("format must be %s or %s", snd_pcm_format_name(SND_PCM_FORMAT_S16), snd_pcm_format_name(SND_PCM_FORMAT_FLOAT));
 			        return -EINVAL;
 
 			}
