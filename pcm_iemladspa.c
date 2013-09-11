@@ -74,7 +74,7 @@ typedef struct linked_list {
 
 void*linked_list_find(linked_list_t*list, const char*key) {
   while(list) {
-    if(!strcmp(list->key,key))
+    if((list->key==key) || (key && !strcmp(list->key,key)))
       return list->data;
     list=list->next;
   }
@@ -90,8 +90,9 @@ linked_list_t*linked_list_add(linked_list_t*list, const char*key, void*data) {
 }
 linked_list_t*linked_list_delete(linked_list_t*inlist, const char*key) {
   linked_list_t*list=inlist, *last=NULL;
+  if(!key) return inlist;
   while(list) {
-    if(!strcmp(list->key,key)) {
+    if((list->key==key) || (key && !strcmp(list->key,key))) {
       /* found element, now delete it, repair the list and return it */
       linked_list_t*next=list->next;
       if(last) {
