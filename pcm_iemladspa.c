@@ -173,9 +173,9 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
   buf->channels=channels;
   return 1;
 }
-
-static inline void interleave(float *src, float *dst, int frames, int channels)
+static inline void reinterleaveFLOAT(float *src, void *dst_, int frames, int channels)
 {
+  float*dst=(float*)dst_;
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
@@ -183,9 +183,9 @@ static inline void interleave(float *src, float *dst, int frames, int channels)
 		}
 	}
 }
-
-static inline void deinterleave(float *src, float *dst, int frames, int channels, int mode)
+static inline void deinterleaveFLOAT(void *src_, float *dst, int frames, int channels)
 {
+  float*src=(float*)src_;
 	int i, j;
 	for(i = 0; i < frames; i++){
 		for(j = 0; j < channels; j++){
@@ -193,6 +193,37 @@ static inline void deinterleave(float *src, float *dst, int frames, int channels
 		}
 	}
 }
+static inline void reinterleaveS16(float *src, void *dst_, int frames, int channels)
+{
+  signed short*dst=(signed short*)dst_;
+	int i, j;
+	for(i = 0; i < frames; i++){
+		for(j = 0; j < channels; j++){
+      int v = src[i + frames*j] * 32767.;
+      if(v > 32767)
+        v=32767;
+      else if (v < -32767)
+        v=-32767;
+			dst[i*channels + j] = v;
+		}
+	}
+}
+
+static inline void deinterleaveS16(void *src_, float *dst, int frames, int channels)
+{
+  signed short*src=(signed short*)src_;
+  const float scale = 1./32767.;
+	int i, j;
+	for(i = 0; i < frames; i++){
+		for(j = 0; j < channels; j++){
+      dst[i + frames*j] = src[i*channels + j] * scale;
+		}
+	}
+}
+
+
+typedef void reinterleave_fun_t(float *src, void *dst_, int frames, int channels);
+typedef void deinterleave_fun_t(void *src_, float *dst, int frames, int channels);
 
 static inline void connect_port(snd_pcm_iemladspa_t *iemladspa,
                          unsigned long Port,
@@ -225,11 +256,27 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 	/* Calculate buffer locations */
   /* first&step are given in bits, hence we device by 8
    */
-	float *src = (float*)(src_areas->addr +
+	void *src = (src_areas->addr +
 			(src_areas->first + src_areas->step * src_offset)/8);
-	float *dst = (float*)(dst_areas->addr +
+	void *dst = (dst_areas->addr +
 			(dst_areas->first + dst_areas->step * dst_offset)/8);	
 
+  deinterleave_fun_t*deinterleave = NULL;
+  reinterleave_fun_t*reinterleave = NULL;
+  switch(ext->format) {
+  case SND_PCM_FORMAT_FLOAT:
+    deinterleave=deinterleaveFLOAT;
+    reinterleave=reinterleaveFLOAT;
+    break;
+  case SND_PCM_FORMAT_S16:
+    deinterleave=deinterleaveS16;
+    reinterleave=reinterleaveS16;
+    break;
+  default:
+    break;
+  }
+
+  if(!deinterleave || !reinterleave)return size;
 
   /* make sure out deinterleaving buffers are large enough */
   audiobuffer_resize(&iemladspa->inbuf , size,
@@ -238,12 +285,11 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
 	/* NOTE: swap source and destination memory space when deinterleaved.
-		then swap it back during the interleave call below */
+     then swap it back during the interleave call below */
   deinterleave(src,
                iemladspa->inbuf.data + bufoffset_in,
-               size, inchannels,
-               playback
-               );
+               size, inchannels);
+
 
   /* only run when stream is in playback mode */
   if(playback) {
@@ -264,9 +310,9 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
 
-	interleave(iemladspa->outbuf.data + bufoffset_out,
-             dst,
-             size, outchannels);
+	reinterleave(iemladspa->outbuf.data + bufoffset_out,
+               dst,
+               size, outchannels);
 
   iemladspa->stream_direction = ext->stream;
 	return size;
@@ -571,11 +617,19 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
                                   pcmchannels);
 
+#if 0
 	snd_pcm_extplug_set_param(ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
 
 	snd_pcm_extplug_set_slave_param(ext,
 			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
+#else
+	snd_pcm_extplug_set_param(ext,
+			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_S16);
+
+	snd_pcm_extplug_set_slave_param(ext,
+			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_S16);
+#endif
 
 	*pcmp = ext->pcm;
 	
