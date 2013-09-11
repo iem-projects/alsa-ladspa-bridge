@@ -452,7 +452,6 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const char*key,
   /* find a 'iemladspa' instance with 'key' */
   snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, key);
   if(!iemladspa) {
-    printf("creating new plugin (%p not found)\n", key);
     iemladspa = iemladspa_mergeplugin_create(key, libname, module, controlfile, sourcechannels, sinkchannels);
     s_mergeplugin_list = linked_list_add(s_mergeplugin_list, key, iemladspa);
   }
@@ -553,7 +552,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   /* ========= init phase done ============ */
 
 	/* Intialize the local object data */
-  printf("key: %p=%s", configname, configname);
   iemladspa = iemladspa_mergeplugin_findorcreate(configname,
                                              library,
                                              module,
