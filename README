@@ -1,92 +1,91 @@
-Alsaequal is a real-time adjustable equalizer plugin for ALSA. It can
-be adjusted using any ALSA compatible mixer, e.g. alsamixergui.
+IEMLADSPA is a plugin for ALSA that loads a LADSPA plugin,
+and allows control with any ALSA compatible mixer, e.g. alsamixergui.
 
-Alsaequal uses the Eq CAPS LADSPA Plugin for audio processing, actually
-alsaequal is a generic LADSPA plugin interface with real-time access to
-the LADSPA controls (the LADSPA plugin included with alsa doesn't allow
-for real-time controls) but it was developed for and only tested with
-Eq CAPS LADSPA plugin. You are welcome to try it with other plugins, it
-may work. Let me know how it goes, you can reach me at
-<charles@thedigitalmachine.net>.
+
+IEMLADSPA uses any multichannel LADSPA Plugin for audio processing.
+It differs from similar plugins (e.g. 'alsaequal') as it will process both the
+recording and the playback streams in a single callback.
+Therefore, the number of channels should match the number of input channels +
+the number of output channels.
+E.g. a standard soundcard will have two (2) inchannels ("microphone") and
+two (2) outchannels ("speaker"), which add up to four (4) channels.
+The LADSPA plugin thus needs four audio in and four audio out ports.
+
+This should allow to build echo-cancellers and similar devices via LADSPA.
 
 INSTALL:
 Download the latest version of the plugin and:
 
-tar xvjf alsaequal-x.x.tar.bz2
-cd alsaequal-x.x
+tar xvjf iemladspa-x.x.tar.bz2
+cd iemladspa-x.x
 make
 sudo make install
 
-DEPENDANCIES:
-- CAPS LADSPA Package -- <http://quitte.de/dsp/caps.html>, it's
-available as a package in Ubuntu, i.e. "sudo apt-get install caps"
+DEPENDENCIES:
+- LADSPA-SDK
 - ALSA Development headers and alsa-lib -- you may already have it
-as part of your linux distro, you can install in Ubuntu with
-"sudo apt-get install libasound2-dev"
-
+as part of your linux distro, you can install in Debian (and derivatives, like
+Ubuntu) with `sudo aptitude install libasound2-dev ladspa-sdk`
 
 USAGE:
 After installing you will have to modify your local .asoundrc alsa
 configuration file, adding something like this. If you're not using
 sound card 0 modify "plughw:0,0" accordingly.
 
-ctl.equal {
-	type equal;
+ctl.ladspa {
+	type iemladspa;
 }
 
-pcm.plugequal {
-    type equal;
-	slave.pcm "plughw:0,0";
+pcm.ladspa {
+    type iemladspa;
+    slave.pcm "hw:0,0";
 }
 
-pcm.equal{
-    type plug;
-    slave.pcm plugequal;
-}
 
-You can play audio through alsaequal by addressing the plugin by name, e.g.:
-mpg123 -a equal 06.Back_In_Black.mp3
-
-You can adjust the frequency response of the equalizer by using any alsa
-mixer, e.g.:  alsamixer -D equal
+You can adjust the control parameters of the plugin by using any alsa
+mixer, e.g.:  alsamixer -D ladspa
 
 HELP:
 If you need any help just let me know, you can reach me at:
-<charles@thedigitalmachine.net>. Please keep in mind that this is
+<zmoelnig@iem.at>. Please keep in mind that this is
 a development release and may have bugs.
 
 More Advanced Stuff:
-If you want to try out alsaequal with other plugins the configuration
+If you want to try out iemladspa with other plugins the configuration
 (asoundrd) structure follows:
 
-ctl.<name_equal> {
-	type equal;
-	controls -- filename used to store the equalizer settings,
-					the default is $HOME/.alsaequal.bin
+ctl.<name> {
+	type iemladspa;
+	controls -- filename used to store the control settings,
+					the default is $HOME/.alsaiemladspa.bin
 	library -- location of the LADSPA library, the default is
-					"/usr/lib/ladspa/caps.so"
-	module -- module name within the LADSPA library, the deafault
-					is "Eq"
-	channels -- number of channels, the default is 2
+					"/usr/lib/ladspa/iemladspa.so"
+	module -- module name within the LADSPA library, the default
+					is "iemladspa"
+	inchannels -- number of input channels, the default is 2
+	outchannels -- number of output channels, the default is 2
 }
 
-pcm.<name_pcm> {
-	type equal;
+pcm.<name> {
+	type iemladspa;
 	slave.pcm -- sound card to output to, will probably have to
-					be a plug since alsaequal only supports
-					floating point numbers, a "plug" will convert
-					the data type, outputig directly to hw won't;
-	controls -- filename used to store the equalizer settings,
-					the default is $HOME/.alsaequal.bin
+					be a plug since iemladspa currently only
+                                        supports floating point numbers, a
+                                        "plug" will convert the data type,
+                                        outputting directly to hw won't;
+	controls -- filename used to store the control settings,
+					the default is $HOME/.alsaiemladspa.bin
 	library -- location of the LADSPA library, the default is
-					"/usr/lib/ladspa/caps.so"
-	module -- module name within the LADSPA library, the deafault
-					is "Eq"
-	channels -- number of channels, the default is 2
+					"/usr/lib/ladspa/iemladspa.so"
+	module -- module name within the LADSPA library, the default
+					is "iemladspa"
+	inchannels -- number of input channels, the default is 2
+	outchannels -- number of output channels, the default is 2
+        format -- which sample format to use, "S16" or "FLOAT", the default is "S16"
 }
 
-You will also probably need to pump the data through a plug to change
-the format to float, which is all alsaequal supports.
+iemladspa currently only supports FLOAT and S16 format. So you will probably
+need to pump the data through a plug to change the format.
 
 pcm.<name_pcm_plug>{
     type plug;
