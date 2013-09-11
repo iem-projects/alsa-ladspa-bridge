@@ -619,20 +619,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
                                   pcmchannels);
 
-#if 0
-	snd_pcm_extplug_set_param(ext,
-			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
-
-	snd_pcm_extplug_set_slave_param(ext,
-			SND_PCM_EXTPLUG_HW_FORMAT, SND_PCM_FORMAT_FLOAT);
-#else
 	snd_pcm_extplug_set_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
                                  sizeof(supported_formats)/sizeof(*supported_formats),
                                  supported_formats);
 	snd_pcm_extplug_set_slave_param_list(ext, SND_PCM_EXTPLUG_HW_FORMAT,
                                  sizeof(supported_formats)/sizeof(*supported_formats),
                                  supported_formats);
-#endif
 
 	*pcmp = ext->pcm;
 	
