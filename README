@@ -15,10 +15,16 @@ This should allow to build echo-cancellers and similar devices via LADSPA.
 INSTALL:
 Download the latest version of the plugin and:
 
-tar xvjf iemladspa-x.x.tar.bz2
-cd iemladspa-x.x
-make
-sudo make install
+ tar xvjf iemladspa-x.x.tar.bz2
+ cd iemladspa-x.x
+ make
+ sudo make install
+
+on Debian (and derivatives) with multi-arch support, you might have to change
+the final step to
+
+ sudo make install LIBDIR=lib/$(dpkg-architecture -qDEB_BUILD_MULTIARCH)
+
 
 DEPENDENCIES:
 - LADSPA-SDK
