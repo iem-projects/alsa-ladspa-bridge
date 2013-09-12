@@ -1,0 +1,135 @@
+## sample asoundrc file for alsa-ladspa-bridge
+## copy this files (or parts thereof) into your ~/.asoundrc
+
+## dummy example, creating a device named 'test'
+#pcm.test {
+#       # plugin type; MUST be 'iemladspa'
+#	type "iemladspa";
+#       # the PCM-device onto which we apply our effect
+#       #  MUST be set to something, typically 'hw:0,0' or 'plughw:0,0'
+#       #  no default!
+#	slave.pcm "hw:0,0"
+#       # the sample format for device input and output
+#       #  (note that the LADSPA-plugin will always get FLOAT data)
+#       #  MUST be compatible with the 'slave.pcm' device
+#       #  valid values are 'S16' and 'FLOAT'; default is 'S16'
+#       format "S16"
+#       # the .so file containing the LADSPA plugin
+#       #  if no absolute filename is given, this file is searched in
+#       #  the path given by the LADSPA_PATH environment variable
+#       #  defaults to '/usr/lib/ladspa/iemladspa.so'
+#	library "/usr/lib/ladspa/iemladspa.so";
+#       # the LADSPA module name (as found in the library)
+#       #  defaults to 'iemladspa'
+#	module "iemladspa";
+#       # number of input channels (think 'microphone')
+#       #  the LADSPA-plugin must have (inchannels+outchannels) audio in ports
+#       #  and audio out ports
+#       #  defaults to 2
+#	inchannels 2;
+#       # number of output channels (think 'speakers')
+#       #  see note on 'inchannels'
+#       #  defaults to 2
+#	outchannels 2;
+#       # file to store control-settings
+#       #  this file is used to make communicate mixer changes between the
+#       #  audio (pcm) device and the mixer (ctl) device.
+#       #  it is also used to make these settings persistent across reboots,...
+#       #  if no absolute filename is given, this file is created in
+#       #    ~/.config/ladspa.iem.at/
+#       #  the default value is '<device-name>.bin' (in this case: 'test.bin')
+#       #  in theory, multiple (compatible!) PCM-devices can share a single
+#       # controls file.
+#	controls "foo.bin";
+#}
+#ctl.test {
+#       # plugin type; MUST be 'iemladspa'
+#	type iemladspa;
+#       # the .so file containing the LADSPA plugin
+#       #  must match the value in the corresponding PCM-device (see 'pcm.test')
+#	library "/usr/lib/ladspa/iemladspa.so";
+#       # the LADSPA module name (as found in the library)
+#       #  must match the value in the corresponding PCM-device (see 'pcm.test')
+#	module "iemladspa";
+#       # number of input channels (think 'microphone')
+#       #  must match the value in the corresponding PCM-device (see 'pcm.test')
+#	inchannels 2;
+#       # number of output channels (think 'speakers')
+#       #  must match the value in the corresponding PCM-device (see 'pcm.test')
+#	outchannels 2;
+#       # file to store control-settings
+#       #  must match the value in the corresponding PCM-device (see 'pcm.test')
+#	controls "foo.bin";
+#}
+
+
+## define a new PCM-device named 'ladspa'
+pcm.ladspa {
+  type iemladspa;
+
+  ## ALSA-settings
+  # build on top of 'hw:0,0';
+  # the 'plug' prefix indicates that 'hw:0,0' is first sent to
+  #  the 'plug' module, which does format-conversion (e.g. to FLOAT)
+  slave.pcm "plughw:0,0";
+  # this device will work with 'FLOAT' samples on both input and output
+  #  the conversion on the low-level (soundcard side) from the native sample
+  #  format to FLOAT will be handled  automatically, because we are using a
+  #  'plug' as the slave.pcm
+  #  the conversion on the high-level (application-side) is not handled here at
+  #  all. either the application natively speaks FLOAT, or you have to use a
+  #  'plug' version of the PCM that converts the samples to whatever is
+  #  required. the device name would then be 'plugladspa'
+  format "FLOAT";
+
+  ## LADSPA-settings
+  # the library where the LADSPA-plugin is to be found
+  library "/usr/lib/ladspa/echocancel.so"
+  # the name of the LADSPA-plugin in the library-file
+  module "echocancel_2_2"
+  # number of input channels (e.g. 'microphones')
+  inchannels 2;
+  # number of output channels (e.g. 'speakers')
+  outchannels 2;
+}
+## define a mixer (control) device for the 'ladspa' PCM
+ctl.ladspa {
+  # settings here match those in the PCM of the same name ('pcm.ladspa')
+  type iemladspa;
+  library "/usr/lib/ladspa/echocancel.so"
+  module "echocancel_2_2"
+  inchannels 2;
+  outchannels 2;
+}
+
+## define another PCM-device named 'ladspa'
+pcm.rawladspa {
+  type iemladspa;
+  ## ALSA-settings
+  # build directly on top of 'hw:0,0';
+  slave.pcm "hw:0,0";
+  # input/output sample-format is 'S16' (signed 16bit integer values)
+  format "S16";
+
+  ## LADSPA-settings
+  library "/usr/lib/ladspa/echocancel.so"
+  module "echocancel_2_2"
+  inchannels 2;
+  outchannels 2;
+  # the control-file that it used to communicate settings between
+  # the PCM and the CTL device, and to make these settings persistent-
+  # if the path is not absolute, it will be stored in ~/.config/ladspa.iem.at/
+  # the default is <name>.bin (in this case: 'rawladspa.bin')
+  controls "rawladspacontrol.bin"
+}
+ctl.rawladspa {
+  type iemladspa;
+  library "/usr/lib/ladspa/echocancel.so"
+  module "echocancel_2_2"
+  inchannels 2;
+  outchannels 2;
+  # must match the settings in the corresponding PCM
+  controls "rawladspacontrol.bin"
+}
+
+
