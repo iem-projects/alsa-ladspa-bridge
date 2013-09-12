@@ -1,4 +1,6 @@
 /*
+ * alsa-ladspa-bridge: use LADSPA-plugins as ALSA-plugins
+ *
  * Copyright (c) 2008 Cooper Street Innovations
  * 		<charles@cooper-street.com>
  * Copyright (c) 2013 IOhannes m zmölnig - IEM
@@ -14,9 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdio.h>
