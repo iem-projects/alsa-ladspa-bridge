@@ -55,7 +55,7 @@ mixer, e.g.:  alsamixer -D ladspa
 HELP
 ---
 If you need any help just let me know, you can reach me at:
-   https://github.com/iem-projects/alsa-ladspa-bridge/issues/issues
+   https://github.com/iem-projects/alsa-ladspa-bridge/issues
 Please keep in mind that this is a development release and may have bugs.
 
 
