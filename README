@@ -12,6 +12,9 @@ The LADSPA plugin thus needs four audio in and four audio out ports.
 
 This should allow to build echo-cancellers and similar devices via LADSPA.
 
+IEMLADSPA is based on 'alsaequal' by Charles Eidsness
+  http://www.thedigitalmachine.net/alsaequal.html
+
 INSTALL
 ---
 Download the latest version of the plugin and:
