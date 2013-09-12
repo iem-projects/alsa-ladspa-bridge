@@ -343,7 +343,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
 		}
 		sprintf(filename, "%s", controls_filename);
 	} else {
-    const char*subdir="/.config/alsa.iem.at/";
+    const char*subdir="/.config/ladspa.iem.at/";
 		homePath = getenv("HOME");
 		if (homePath==NULL) {
 			return NULL;
