@@ -12,7 +12,8 @@ The LADSPA plugin thus needs four audio in and four audio out ports.
 
 This should allow to build echo-cancellers and similar devices via LADSPA.
 
-INSTALL:
+INSTALL
+---
 Download the latest version of the plugin and:
 
  tar xvjf iemladspa-x.x.tar.bz2
@@ -20,13 +21,16 @@ Download the latest version of the plugin and:
  make
  sudo make install
 
-DEPENDENCIES:
+DEPENDENCIES
+---
 - LADSPA-SDK
 - ALSA Development headers and alsa-lib -- you may already have it
 as part of your linux distro, you can install in Debian (and derivatives, like
 Ubuntu) with `sudo aptitude install libasound2-dev ladspa-sdk`
 
-USAGE:
+
+USAGE
+---
 After installing you will have to modify your local .asoundrc alsa
 configuration file, adding something like this. If you're not using
 sound card 0 modify "plughw:0,0" accordingly.
@@ -44,50 +48,37 @@ pcm.ladspa {
 You can adjust the control parameters of the plugin by using any alsa
 mixer, e.g.:  alsamixer -D ladspa
 
-HELP:
+
+HELP
+---
 If you need any help just let me know, you can reach me at:
-<zmoelnig@iem.at>. Please keep in mind that this is
-a development release and may have bugs.
+   https://github.com/iem-projects/alsa-ladspa-bridge/issues/issues
+Please keep in mind that this is a development release and may have bugs.
+
 
 More Advanced Stuff:
-If you want to try out iemladspa with other plugins the configuration
-(asoundrc) structure follows:
+---
+Check out the annotated 'asoundrc' example file.
 
-ctl.<name> {
-	type iemladspa;
-	controls -- filename used to store the control settings,
-          the default is <name>.bin;
-          if the file is non-absolute, use $HOME/.config/alsa.iem.at/
-	library -- location of the LADSPA library, the default is
-					"/usr/lib/ladspa/iemladspa.so"
-	module -- module name within the LADSPA library, the default
-          is "iemladspa"
-	inchannels -- number of input channels, the default is 2
-	outchannels -- number of output channels, the default is 2
-}
+controls
+--
+The mixer-device ("ctl") and the audio device ("pcm") communicate via a
+controls-file (as given with the 'controls' setting in asoundrc).
+This file is a binary file that get's mmapped by both devices.
+As such the file is fragile, and cannot be shared between two different plugins,
+unless the two plugins are port-compatible.
+It can however be shared between devices that use the very same LADSPA-plugins
+(all instances will then be controlled simultaneously).
 
-pcm.<name> {
-	type iemladspa;
-	slave.pcm -- sound card to output to, will probably have to
-          be a plug since iemladspa currently only
-          supports floating point and PCM16 samples.
-          a "plug" will convert the data type, outputting directly to hw won't;
-	controls -- filename used to store the control settings,
-          the default is <name>.bin;
-          if the file is non-absolute, use $HOME/.config/alsa.iem.at/
-	library -- location of the LADSPA library, the default is
-          "/usr/lib/ladspa/iemladspa.so"
-	module -- module name within the LADSPA library, the default
-          is "iemladspa"
-	inchannels -- number of input ('microphone') channels, the default is 2
-	outchannels -- number of output ('speaker') channels, the default is 2
-  format -- which sample format to use, "S16" or "FLOAT", the default is "S16"
-}
-
-iemladspa currently only supports FLOAT and S16 format. So you will probably
-need to pump the data through a plug to change the format.
+sample format
+--
+iemladspa currently only supports FLOAT and S16 format for communicating with
+the soundcard ("downstream") and the application ("upstream").
+So you will probably need to pump the data through a plug to change the format.
 
 pcm.<anothername>{
     type plug;
     slave.pcm <name>;
 }
+
+The LADSPA-plugin will *always* work on floating point samples.
