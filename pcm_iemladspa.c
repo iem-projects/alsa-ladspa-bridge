@@ -54,19 +54,19 @@ typedef struct _iemladspa_audiobuf {
 
 typedef struct snd_pcm_iemladspa {
   unsigned int usecount;
-	snd_pcm_extplug_t extIN, extOUT;
+  snd_pcm_extplug_t extIN, extOUT;
 
   const void   *key;
 
-	void *library;
-	const LADSPA_Descriptor *klass;
+  void *library;
+  const LADSPA_Descriptor *klass;
 
   iemladspa_audiobuf_t inbuf ;
   iemladspa_audiobuf_t outbuf;
   int stream_direction;
 
-	LADSPA_Control *control_data;
-	LADSPA_Handle *plugininstance;
+  LADSPA_Control *control_data;
+  LADSPA_Handle *plugininstance;
 } snd_pcm_iemladspa_t;
 
 typedef struct linked_list {
@@ -179,49 +179,49 @@ static int audiobuffer_resize(iemladspa_audiobuf_t *buf, unsigned int frames, un
 static inline void reinterleaveFLOAT(float *src, void *dst_, int frames, int channels)
 {
   float*dst=(float*)dst_;
-	int i, j;
-	for(i = 0; i < frames; i++){
-		for(j = 0; j < channels; j++){
-			dst[i*channels + j] = src[i + frames*j];
-		}
-	}
+  int i, j;
+  for(i = 0; i < frames; i++){
+    for(j = 0; j < channels; j++){
+      dst[i*channels + j] = src[i + frames*j];
+    }
+  }
 }
 static inline void deinterleaveFLOAT(void *src_, float *dst, int frames, int channels)
 {
   float*src=(float*)src_;
-	int i, j;
-	for(i = 0; i < frames; i++){
-		for(j = 0; j < channels; j++){
+  int i, j;
+  for(i = 0; i < frames; i++){
+    for(j = 0; j < channels; j++){
       dst[i + frames*j] = src[i*channels + j];
-		}
-	}
+    }
+  }
 }
 static inline void reinterleaveS16(float *src, void *dst_, int frames, int channels)
 {
   signed short*dst=(signed short*)dst_;
-	int i, j;
-	for(i = 0; i < frames; i++){
-		for(j = 0; j < channels; j++){
+  int i, j;
+  for(i = 0; i < frames; i++){
+    for(j = 0; j < channels; j++){
       int v = src[i + frames*j] * 32767.;
       if(v > 32767)
         v=32767;
       else if (v < -32767)
         v=-32767;
-			dst[i*channels + j] = v;
-		}
-	}
+      dst[i*channels + j] = v;
+    }
+  }
 }
 
 static inline void deinterleaveS16(void *src_, float *dst, int frames, int channels)
 {
   signed short*src=(signed short*)src_;
   const float scale = 1./32767.;
-	int i, j;
-	for(i = 0; i < frames; i++){
-		for(j = 0; j < channels; j++){
+  int i, j;
+  for(i = 0; i < frames; i++){
+    for(j = 0; j < channels; j++){
       dst[i + frames*j] = src[i*channels + j] * scale;
-		}
-	}
+    }
+  }
 }
 
 
@@ -243,10 +243,10 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                                             snd_pcm_uframes_t src_offset,
                                             snd_pcm_uframes_t size)
 {
-	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
+  snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
-	int j;
+  int j;
   const unsigned long dataoffset_in  = iemladspa->control_data->num_controls;
   const unsigned long dataoffset_out = dataoffset_in + iemladspa->control_data->num_inchannels;
 
@@ -256,12 +256,12 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   const unsigned long bufoffset_in  = (playback)?(iemladspa->control_data->sourcechannels.in  * size):0;
   const unsigned long bufoffset_out = (playback)?(iemladspa->control_data->sourcechannels.out * size):0;
 
-	/* Calculate buffer locations */
+  /* Calculate buffer locations */
   /* first&step are given in bits, hence we device by 8
    */
-	void *src = (src_areas->addr +
+  void *src = (src_areas->addr +
                (src_areas->first + src_areas->step * src_offset)/8);
-	void *dst = (dst_areas->addr +
+  void *dst = (dst_areas->addr +
                (dst_areas->first + dst_areas->step * dst_offset)/8);
 
   deinterleave_fun_t*deinterleave = NULL;
@@ -287,7 +287,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   audiobuffer_resize(&iemladspa->outbuf, size,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
-	/* NOTE: swap source and destination memory space when deinterleaved.
+  /* NOTE: swap source and destination memory space when deinterleaved.
      then swap it back during the interleave call below */
   deinterleave(src,
                iemladspa->inbuf.data + bufoffset_in,
@@ -313,16 +313,16 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
 
-	reinterleave(iemladspa->outbuf.data + bufoffset_out,
+  reinterleave(iemladspa->outbuf.data + bufoffset_out,
                dst,
                size, outchannels);
 
   iemladspa->stream_direction = ext->stream;
-	return size;
+  return size;
 }
 
 static int iemladspa_close(snd_pcm_extplug_t *ext) {
-	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
+  snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t*)ext->private_data;
 
   /* check whether we are the last user of iemladspa */
   if((--(iemladspa->usecount))>0)
@@ -343,7 +343,7 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   iemladspa->plugininstance = NULL;
 
 
-	if(iemladspa->control_data)
+  if(iemladspa->control_data)
     LADSPAcontrolUnMMAP(iemladspa->control_data);
   iemladspa->control_data=NULL;
   if(iemladspa->library)
@@ -351,14 +351,14 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
   iemladspa->library=NULL;
 
   s_mergeplugin_list = linked_list_delete(s_mergeplugin_list, iemladspa->key);
-	free(iemladspa);
-	return 0;
+  free(iemladspa);
+  return 0;
 }
 
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
-	snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
-	int i;
+  snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
+  int i;
 
   if(!iemladspa->plugininstance) {
     /* Instantiate a LADSPA Plugin */
@@ -372,7 +372,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
     }
   }
 
-	/* Connect controls to the LADSPA Plugin */
+  /* Connect controls to the LADSPA Plugin */
   for(i = 0; i < iemladspa->control_data->num_controls; i++) {
     iemladspa->klass->connect_port(iemladspa->plugininstance,
                                    iemladspa->control_data->data[i].index,
@@ -386,7 +386,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
                      65536,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
-	return 0;
+  return 0;
 }
 
 /*
@@ -407,17 +407,17 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
                                                           const char*controlfile,
                                                           iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
                                                           ) {
-	void *library = NULL;
-	const LADSPA_Descriptor *klass=NULL;
-	LADSPA_Control *control_data= NULL;
+  void *library = NULL;
+  const LADSPA_Descriptor *klass=NULL;
+  LADSPA_Control *control_data= NULL;
   int success=0;
 
-	/* Open the LADSPA Plugin */
-	library = LADSPAload(libname);
-	if(library == NULL) goto finalize;
+  /* Open the LADSPA Plugin */
+  library = LADSPAload(libname);
+  if(library == NULL) goto finalize;
 
-	klass = LADSPAfind(library, libname, module);
-	if(klass == NULL)goto finalize;
+  klass = LADSPAfind(library, libname, module);
+  if(klass == NULL)goto finalize;
 
   control_data = LADSPAcontrolMMAP(klass, controlfile,
                                    sourcechannels, sinkchannels);
@@ -464,21 +464,21 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const void *key,
 
 
 static snd_pcm_extplug_callback_t iemladspa_callback = {
-	.transfer = iemladspa_transfer,
-	.init = iemladspa_init,
-	.close = iemladspa_close,
+  .transfer = iemladspa_transfer,
+  .init = iemladspa_init,
+  .close = iemladspa_close,
 };
 
 SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 {
-	snd_config_iterator_t i, next;
-	snd_pcm_iemladspa_t *iemladspa=NULL;
-	snd_config_t *sconf = NULL;
-	const char *controls = NULL;
+  snd_config_iterator_t i, next;
+  snd_pcm_iemladspa_t *iemladspa=NULL;
+  snd_config_t *sconf = NULL;
+  const char *controls = NULL;
   char *default_controls=NULL;
-	const char *library = "/usr/lib/ladspa/iemladspa.so";
-	const char *module = "iemladspa";
-	int err;
+  const char *library = "/usr/lib/ladspa/iemladspa.so";
+  const char *module = "iemladspa";
+  int err;
   iemladspa_iochannels_t sourcechannels, sinkchannels;
   long inchannels = 2;
   long outchannels = 2;
@@ -491,70 +491,70 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
 
-	/* Parse configuration options from asoundrc */
-	snd_config_for_each(i, next, conf) {
-		snd_config_t *n = snd_config_iterator_entry(i);
+  /* Parse configuration options from asoundrc */
+  snd_config_for_each(i, next, conf) {
+    snd_config_t *n = snd_config_iterator_entry(i);
 
-		const char *id;
-		if (snd_config_get_id(n, &id) < 0)
-			continue;
-		if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0 || strcmp(id, "hint") == 0)
-			continue;
-		if (strcmp(id, "slave") == 0) {
-			sconf = n;
-			continue;
-		}
-		if (strcmp(id, "controls") == 0) {
-			snd_config_get_string(n, &controls);
-			continue;
-		}
-		if (strcmp(id, "library") == 0) {
-			snd_config_get_string(n, &library);
-			continue;
-		}
-		if (strcmp(id, "module") == 0) {
-			snd_config_get_string(n, &module);
-			continue;
-		}
-		if (strcmp(id, "format") == 0) {
-			const char*fmt=NULL;
-			snd_config_get_string(n, &fmt);
-			format=snd_pcm_format_value(fmt);
-			if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
+    const char *id;
+    if (snd_config_get_id(n, &id) < 0)
+      continue;
+    if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0 || strcmp(id, "hint") == 0)
+      continue;
+    if (strcmp(id, "slave") == 0) {
+      sconf = n;
+      continue;
+    }
+    if (strcmp(id, "controls") == 0) {
+      snd_config_get_string(n, &controls);
+      continue;
+    }
+    if (strcmp(id, "library") == 0) {
+      snd_config_get_string(n, &library);
+      continue;
+    }
+    if (strcmp(id, "module") == 0) {
+      snd_config_get_string(n, &module);
+      continue;
+    }
+    if (strcmp(id, "format") == 0) {
+      const char*fmt=NULL;
+      snd_config_get_string(n, &fmt);
+      format=snd_pcm_format_value(fmt);
+      if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
         SNDERR("format must be %s or %s", snd_pcm_format_name(SND_PCM_FORMAT_S16), snd_pcm_format_name(SND_PCM_FORMAT_FLOAT));
         return -EINVAL;
 
-			}
-			continue;
-		}
-		if (strcmp(id, "inchannels") == 0) {
+      }
+      continue;
+    }
+    if (strcmp(id, "inchannels") == 0) {
       snd_config_get_integer(n, &inchannels);
       if(inchannels < 1) {
         SNDERR("inchannels < 1");
         return -EINVAL;
       }
       continue;
-		}
-		if (strcmp(id, "outchannels") == 0) {
+    }
+    if (strcmp(id, "outchannels") == 0) {
       snd_config_get_integer(n, &outchannels);
       if(outchannels < 1) {
         SNDERR("outchannels < 1");
         return -EINVAL;
       }
       continue;
-		}
+    }
 
-		SNDERR("Unknown field %s", id);
-		return -EINVAL;
-	}
+    SNDERR("Unknown field %s", id);
+    return -EINVAL;
+  }
   sourcechannels.in = sourcechannels.out = inchannels;
   sinkchannels.in   = sinkchannels.out   = outchannels;
 
-	/* Make sure we have a slave and control devices defined */
-	if (! sconf) {
-		SNDERR("No slave configuration for iemladspa pcm");
-		return -EINVAL;
-	}
+  /* Make sure we have a slave and control devices defined */
+  if (! sconf) {
+    SNDERR("No slave configuration for iemladspa pcm");
+    return -EINVAL;
+  }
 
   if(!controls) {
     default_controls=(char*)calloc(strlen(configname)+5, 1);
@@ -568,14 +568,14 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   /* ========= init phase done ============ */
 
-	/* Intialize the local object data */
+  /* Intialize the local object data */
   iemladspa = iemladspa_mergeplugin_findorcreate(configname,
                                                  library,
                                                  module,
                                                  controls,
                                                  sourcechannels, sinkchannels);
-	if (iemladspa == NULL)
-		return -ENOMEM;
+  if (iemladspa == NULL)
+    return -ENOMEM;
 
   /* check whether we already have an ext for this stream,
      if so, we are done;
@@ -590,19 +590,19 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     ext=&iemladspa->extIN;
   }
 
-	ext->version = SND_PCM_EXTPLUG_VERSION;
-	ext->name = "alsaiemladspa";
-	ext->callback = &iemladspa_callback;
-	ext->private_data = iemladspa;
+  ext->version = SND_PCM_EXTPLUG_VERSION;
+  ext->name = "alsaiemladspa";
+  ext->callback = &iemladspa_callback;
+  ext->private_data = iemladspa;
 
-	/* Create the ALSA External Plugin */
-	err = snd_pcm_extplug_create(ext, name, root, sconf, stream, mode);
-	if (err < 0) {
+  /* Create the ALSA External Plugin */
+  err = snd_pcm_extplug_create(ext, name, root, sconf, stream, mode);
+  if (err < 0) {
     SNDERR("could'nt create extplug '%s'.", name);
-		return err;
-	}
+    return err;
+  }
 
-	/* MMAP to the controls file */
+  /* MMAP to the controls file */
   if(!iemladspa->control_data) {
     iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
                                                 sourcechannels, sinkchannels);
@@ -635,7 +635,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     }
   }
 
-	/* Set PCM Contraints */
+  /* Set PCM Contraints */
   pcmchannels = (SND_PCM_STREAM_PLAYBACK == stream)
     ? iemladspa->control_data->sourcechannels.out
     : iemladspa->control_data->sinkchannels.in;
@@ -652,12 +652,12 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   snd_pcm_extplug_set_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
   snd_pcm_extplug_set_slave_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
 
-	*pcmp = ext->pcm;
+  *pcmp = ext->pcm;
 
   if(default_controls)
     free(default_controls);
 	
-	return 0;
+  return 0;
 
 }
 
