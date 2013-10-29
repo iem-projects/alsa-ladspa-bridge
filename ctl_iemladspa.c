@@ -172,7 +172,9 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
      failure */
   snd_config_iterator_t it, next;
   snd_ctl_iemladspa_t *iemladspa;
-  const char *controls = ".alsaiemladspa.bin";
+  const char *configname = NULL;
+  const char *controls = NULL;
+  char *default_controls=NULL;
   const char *library = "/usr/lib/ladspa/iemladspa.so";
   const char *module = "iemladspa";
   int err, i, index;
@@ -180,6 +182,9 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   iemladspa_iochannels_t sourcechannels, sinkchannels;
   long inchannels = 2;
   long outchannels = 2;
+
+  if (snd_config_get_id(conf, &configname) < 0)
+    configname="alsaiemladspa";
 
   /* Parse configuration options from asoundrc */
   snd_config_for_each(it, next, conf) {
@@ -223,6 +228,18 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   }
   sourcechannels.in = sourcechannels.out = inchannels;
   sinkchannels.in   = sinkchannels.out   = outchannels;
+
+  if(!controls) {
+    default_controls=(char*)calloc(strlen(configname)+5, 1);
+    if(!default_controls) {
+      SNDERR("unable to allocate memory for '%s.bin'", configname);
+      retval=-EINVAL;
+      goto cleanup;
+    }
+    sprintf(default_controls, "%s.bin", configname);
+    controls=default_controls;
+  }
+
 
   /* Intialize the local object data */
   iemladspa = calloc(1, sizeof(*iemladspa));
@@ -326,6 +343,8 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   *handlep = iemladspa->ext.handle;
 
  cleanup:
+  if(default_controls)
+    free(default_controls);
   return retval;
 }
 
