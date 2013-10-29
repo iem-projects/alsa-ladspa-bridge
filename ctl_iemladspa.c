@@ -167,6 +167,7 @@ static snd_ctl_ext_callback_t iemladspa_ext_callback = {
 
 SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 {
+  int retval=0;
   /* TODO: Plug all of the memory leaks if these some initialization
      failure */
   snd_config_iterator_t it, next;
@@ -204,7 +205,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
       snd_config_get_integer(n, &inchannels);
       if(inchannels < 1) {
         SNDERR("inchannels < 1");
-        return -EINVAL;
+        retval=-EINVAL; goto cleanup;
       }
       continue;
     }
@@ -212,21 +213,22 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
       snd_config_get_integer(n, &outchannels);
       if(outchannels < 1) {
         SNDERR("outchannels < 1");
-        return -EINVAL;
+        retval=-EINVAL; goto cleanup;
       }
       continue;
     }
 
     SNDERR("Unknown field %s", id);
-    return -EINVAL;
+    retval=-EINVAL; goto cleanup;
   }
   sourcechannels.in = sourcechannels.out = inchannels;
   sinkchannels.in   = sinkchannels.out   = outchannels;
 
   /* Intialize the local object data */
   iemladspa = calloc(1, sizeof(*iemladspa));
-  if (iemladspa == NULL)
-    return -ENOMEM;
+  if (iemladspa == NULL) {
+    retval=-ENOMEM; goto cleanup;
+  }
 
   iemladspa->ext.version = SND_CTL_EXT_VERSION;
   iemladspa->ext.card_idx = 0;
@@ -237,12 +239,12 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   /* Open the LADSPA Plugin */
   iemladspa->library = LADSPAload(library);
   if(iemladspa->library == NULL) {
-    return -1;
+    retval=-1; goto cleanup;
   }
 
   iemladspa->klass = LADSPAfind(iemladspa->library, library, module);
   if(iemladspa->klass == NULL) {
-    return -1;
+    retval=-1; goto cleanup;
   }
 
   /* Import data from the LADSPA Plugin */
@@ -256,14 +258,14 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   /* Create the ALSA External Plugin */
   err = snd_ctl_ext_create(&iemladspa->ext, name, SND_CTL_NONBLOCK);
   if (err < 0) {
-    return -1;
+    retval=-1; goto cleanup;
   }
 
   /* MMAP to the controls file */
   iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
                                               sourcechannels, sinkchannels);
   if(iemladspa->control_data == NULL) {
-    return -1;
+    retval=-1; goto cleanup;
   }
 	
   iemladspa->num_input_controls = 0;
@@ -277,7 +279,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   iemladspa->control_info = malloc(
                                    sizeof(snd_ctl_iemladspa_control_t)*iemladspa->num_input_controls);
   if(iemladspa->control_info == NULL) {
-    return -1;
+    retval=-1; goto cleanup;
   }
 
   for(i = 0; i < iemladspa->num_input_controls; i++) {
@@ -286,7 +288,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
       if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
 	SNDERR("Problem with control file %s, %d.", controls, index);
-	return -1;
+	retval=-1; goto cleanup;
       }
       iemladspa->control_info[i].min =
         iemladspa->klass->PortRangeHints[index].LowerBound;
@@ -295,7 +297,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 
       iemladspa->control_info[i].name = strdup(iemladspa->klass->PortNames[index]);
       if(iemladspa->control_info[i].name == NULL) {
-	return -1;
+	retval=-1; goto cleanup;
       }
     }
   }
@@ -308,7 +310,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
       SNDERR("Problem with control file %s.", controls);
-      return -1;
+      retval=-1; goto cleanup;
     }
   }
   for(i=0; i<iemladspa->control_data->num_outchannels; i++) {
@@ -317,13 +319,14 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
       SNDERR("Problem with control file %s.", controls);
-      return -1;
+      retval=-1; goto cleanup;
     }
   }
 
   *handlep = iemladspa->ext.handle;
-  return 0;
 
+ cleanup:
+  return retval;
 }
 
 SND_CTL_PLUGIN_SYMBOL(iemladspa);
