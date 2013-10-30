@@ -294,9 +294,11 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                iemladspa->inbuf.data + bufoffset_in,
                size, inchannels);
 
-
-  /* only run when stream is in playback mode */
-  if(playback) {
+  /* only run when
+   *   - stream is in playback mode (if we are opened with PLAYBACK)
+   *   - stream is in capture mode (if we don't have PLAYBACK)
+   */
+  if((playback) || (!iemladspa->has_playback)) {
     for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_in + j].index,
