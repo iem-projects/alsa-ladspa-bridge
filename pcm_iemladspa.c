@@ -64,6 +64,7 @@ typedef struct snd_pcm_iemladspa {
   iemladspa_audiobuf_t inbuf ;
   iemladspa_audiobuf_t outbuf;
   int stream_direction;
+  int has_playback, has_capture;
 
   LADSPA_Control *control_data;
   LADSPA_Handle *plugininstance;
@@ -583,9 +584,11 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   */
 
   if(SND_PCM_STREAM_PLAYBACK==stream) {
+    iemladspa->has_playback=1;
     if(iemladspa->extOUT.private_data == iemladspa)return 0;
     ext=&iemladspa->extOUT;
   } else {
+    iemladspa->has_capture=1;
     if(iemladspa->extIN.private_data == iemladspa)return 0;
     ext=&iemladspa->extIN;
   }
