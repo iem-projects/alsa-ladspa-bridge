@@ -298,7 +298,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
    *   - stream is in playback mode (if we are opened with PLAYBACK)
    *   - stream is in capture mode (if we don't have PLAYBACK)
    */
-  if((playback) || (!iemladspa->has_playback)) {
+  if(0 && ((playback) || (!iemladspa->has_playback))) {
     for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_in + j].index,
@@ -645,14 +645,32 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     ? iemladspa->control_data->sourcechannels.out
     : iemladspa->control_data->sinkchannels.in;
 
+  /* MONO support: we really should make an enumeration, rather than minmax */
+#if 0
   snd_pcm_extplug_set_param_minmax(ext,
                                    SND_PCM_EXTPLUG_HW_CHANNELS,
-                                   pcmchannels,
+                                   1, /* allow opending MONO */
                                    pcmchannels);
+#else
+  printf("dir=%d\tpcmchannels=%d\n", stream, pcmchannels);
+  if(1==pcmchannels) {
+    snd_pcm_extplug_set_param(ext,
+                              SND_PCM_EXTPLUG_HW_CHANNELS,
+                              pcmchannels);
+  } else {
+    unsigned int list [2];
+    list[1]=1;
+    list[0]=pcmchannels;
+    snd_pcm_extplug_set_param_list(ext,
+                                   SND_PCM_EXTPLUG_HW_CHANNELS,
+                                   2, list);
+  }
+#endif
 
-  snd_pcm_extplug_set_slave_param(ext,
+  snd_pcm_extplug_set_slave_param_minmax(ext,
                                   SND_PCM_EXTPLUG_HW_CHANNELS,
-                                  pcmchannels);
+                                         pcmchannels,
+                                         pcmchannels);
 
   snd_pcm_extplug_set_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
   snd_pcm_extplug_set_slave_param(ext, SND_PCM_EXTPLUG_HW_FORMAT, format);
@@ -661,9 +679,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   if(default_controls)
     free(default_controls);
-	
-  return 0;
 
+  return 0;
 }
 
 SND_PCM_PLUGIN_SYMBOL(iemladspa);
