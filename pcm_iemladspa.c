@@ -43,7 +43,7 @@
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
-#define DEBUG printf("%s:%d\t%s\n", __FILE__, __LINE__, __FUNCTION__), printf
+#define DEBUG printf("%s:%d %s\t", __FILE__, __LINE__, __FUNCTION__), printf
 
 typedef struct _iemladspa_audiobuf {
   unsigned int frames;
