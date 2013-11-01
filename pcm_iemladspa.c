@@ -295,8 +295,13 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   const unsigned int outchannels = (playback)?(iemladspa->control_data->sourcechannels.out):(iemladspa->control_data->sinkchannels.out);
 
   /* offset in samples to jump to the correct channel in the de-interleaved data */
-  const unsigned long bufoffset_in  = (playback)?(iemladspa->control_data->sourcechannels.in  * size):0;
-  const unsigned long bufoffset_out = (playback)?(iemladspa->control_data->sourcechannels.out * size):0;
+  const unsigned long bufoffset_in_src  = 0;
+  const unsigned long bufoffset_in_snk  = (iemladspa->control_data->sourcechannels.in  * size);
+  const unsigned long bufoffset_out_src = 0;
+  const unsigned long bufoffset_out_snk = (iemladspa->control_data->sourcechannels.out * size);
+
+  const unsigned long bufoffset_in  = (playback)? bufoffset_in_snk :bufoffset_in_src;
+  const unsigned long bufoffset_out = (playback)? bufoffset_out_snk:bufoffset_out_src;
 
   /* LADSPA-port offset (to skip control-ports in port_connect */
   const unsigned long dataoffset_in  = iemladspa->control_data->num_controls;
