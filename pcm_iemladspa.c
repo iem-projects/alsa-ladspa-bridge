@@ -262,6 +262,17 @@ static inline void samples_mixdown(float*src, float*dst, int frames, int channel
   }
 }
 
+/* mute <channels> int <dst> */
+static inline void samples_mute(float*dst, int frames, int channels) {
+  int frame, channel;
+  DEBUG("mute %d/%d\n", frames, channels);
+  for(channel=0; channel<channels; channel++) {
+    float*out=dst+frames*channel;
+    for(frame=0; frame<frames; frame++) {
+      *out++=0.f;
+    }
+  }
+}
 
 typedef void reinterleave_fun_t(float *src, void *dst_, int frames, int channels);
 typedef void deinterleave_fun_t(void *src_, float *dst, int frames, int channels);
