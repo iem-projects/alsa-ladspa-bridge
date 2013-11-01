@@ -402,7 +402,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                     size, outchannels);
 
     /* "reinterleave" */
-    deinterleave(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].mono.data,
+    reinterleave(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].mono.data,
                  dst,
                  size, 1);
   } else {
