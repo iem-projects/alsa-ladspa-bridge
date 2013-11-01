@@ -386,6 +386,16 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
    *   - stream is in capture mode (if we don't have PLAYBACK)
    */
   if((playback) || (!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled)) {
+    /* MUTE all unused input channels */
+    if(!iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].enabled) {
+      samples_mute(iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf.data + bufoffset_in_src,
+		   size, iemladspa->control_data->sourcechannels.in);
+    }
+    if(!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled) {
+      samples_mute(iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf.data + bufoffset_in_snk,
+		   size, iemladspa->control_data->sourcechannels.in);
+    }
+
     for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_in + j].index,
@@ -401,6 +411,16 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
     }
 
     iemladspa->klass->run(iemladspa->plugininstance, size);
+  }
+
+  /* MUTE all unused input channels */
+  if(!iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].enabled) {
+    samples_mute(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf.data + bufoffset_out_src,
+		 size, iemladspa->control_data->sourcechannels.out);
+  }
+  if(!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled) {
+    samples_mute(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf.data + bufoffset_out_snk,
+		 size, iemladspa->control_data->sourcechannels.out);
   }
 
   if(playback | (alsa_outchannels == outchannels)) {
