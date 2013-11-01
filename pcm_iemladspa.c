@@ -39,7 +39,6 @@
 #include <alsa/pcm_external.h>
 #include <alsa/control.h>
 #include <linux/soundcard.h>
-
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
@@ -52,22 +51,24 @@ typedef struct _iemladspa_audiobuf {
   float *data;
 } iemladspa_audiobuf_t;
 
-typedef struct snd_pcm_iemladspa {
-  unsigned int usecount;
-  snd_pcm_extplug_t extIN, extOUT;
+typedef struct _iemladspa_stream {
+  iemladspa_audiobuf_t buf;
+  iemladspa_audiobuf_t mono;
+  snd_pcm_extplug_t    ext;
+  int enabled;
+} iemladspa_stream_t;
 
-  const void   *key;
+typedef struct snd_pcm_iemladspa {
+  iemladspa_stream_t streamdir[SND_PCM_STREAM_LAST+1];
+  int stream_direction;
 
   void *library;
   const LADSPA_Descriptor *klass;
-
-  iemladspa_audiobuf_t inbuf ;
-  iemladspa_audiobuf_t outbuf;
-  int stream_direction;
-  int has_playback, has_capture;
-
   LADSPA_Control *control_data;
   LADSPA_Handle *plugininstance;
+
+  unsigned int usecount;
+  const void   *key;
 } snd_pcm_iemladspa_t;
 
 typedef struct linked_list {
@@ -225,6 +226,38 @@ static inline void deinterleaveS16(void *src_, float *dst, int frames, int chann
   }
 }
 
+/* duplicate the MONO src-channel into <channels> dst-channels */
+static inline void samples_duplicate(float*src, float*dst, int frames, int channels) {
+  int frame, channel;
+  DEBUG("dupe %d/%d\n", frames, channels);
+  for(channel=0; channel<channels; channel++) {
+    float*out=dst+frames*channel;
+    float*in =src;
+    for(frame=0; frame<frames; frame++) {
+      *out++=*in++;
+    }
+  }
+}
+/* mix <channels> src-channels into a MONO dst-channel */
+static inline void samples_mixdown(float*src, float*dst, int frames, int channels) {
+  int frame, channel;
+  float*in,*out;
+  DEBUG("mix  %d/%d\n", frames, channels);
+
+  out=dst;
+  for(frame=0; frame<frames; frame++) {
+    *out++=0.f;
+  }
+
+  for(channel=0; channel<channels; channel++) {
+    in=src+frames*channel;
+    out=dst;
+    for(frame=0; frame<frames; frame++) {
+      *out++ += *in++;
+    }
+  }
+}
+
 
 typedef void reinterleave_fun_t(float *src, void *dst_, int frames, int channels);
 typedef void deinterleave_fun_t(void *src_, float *dst, int frames, int channels);
@@ -244,18 +277,30 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                                             snd_pcm_uframes_t src_offset,
                                             snd_pcm_uframes_t size)
 {
+  printf("transfer: stream=%d\tchannels=%d\tslavechannels=%d\n", ext->stream, ext->channels, ext->slave_channels);
+
+  return size;
+
   snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
-  int j;
-  const unsigned long dataoffset_in  = iemladspa->control_data->num_controls;
-  const unsigned long dataoffset_out = dataoffset_in + iemladspa->control_data->num_inchannels;
+  /* input/output channels for the alsa-plugin (transfer call) */
+  const unsigned int alsa_inchannels  = ( playback)?ext->channels:ext->slave_channels;
+  const unsigned int alsa_outchannels = (!playback)?ext->channels:ext->slave_channels;
 
+  /* input/output channels for the ladspa-plugin */
   const unsigned int inchannels  = (playback)?(iemladspa->control_data->sourcechannels.in ):(iemladspa->control_data->sinkchannels.in);
   const unsigned int outchannels = (playback)?(iemladspa->control_data->sourcechannels.out):(iemladspa->control_data->sinkchannels.out);
 
+  /* offset in samples to jump to the correct channel in the de-interleaved data */
   const unsigned long bufoffset_in  = (playback)?(iemladspa->control_data->sourcechannels.in  * size):0;
   const unsigned long bufoffset_out = (playback)?(iemladspa->control_data->sourcechannels.out * size):0;
+
+  /* LADSPA-port offset (to skip control-ports in port_connect */
+  const unsigned long dataoffset_in  = iemladspa->control_data->num_controls;
+  const unsigned long dataoffset_out = dataoffset_in + iemladspa->control_data->num_inchannels;
+
+  int j;
 
   /* Calculate buffer locations */
   /* first&step are given in bits, hence we device by 8
@@ -283,43 +328,88 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
   if(!deinterleave || !reinterleave)return size;
 
   /* make sure out deinterleaving buffers are large enough */
-  audiobuffer_resize(&iemladspa->inbuf , size,
+  audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf , size,
                      iemladspa->control_data->sourcechannels.in +iemladspa->control_data->sinkchannels.in);
-  audiobuffer_resize(&iemladspa->outbuf, size,
+  audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf, size,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
   /* NOTE: swap source and destination memory space when deinterleaved.
      then swap it back during the interleave call below */
-  deinterleave(src,
-               iemladspa->inbuf.data + bufoffset_in,
-               size, inchannels);
+
+  if(!playback | (alsa_inchannels == inchannels)) {
+    /* in CAPTURE mode, we always have the correct number of input channels;
+     * deinterleave the data into *channels.in channels
+     */
+    deinterleave(src,
+                 iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf.data + bufoffset_in,
+                 size, inchannels);
+  } else if (1==alsa_inchannels) {
+    /* if we are in PLAYBACK mode, the client-application might send us data in MONO;
+     * deinterleave the data into a MONO buffer, then blow it up to *channels.in
+     */
+    audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].mono, size, 1);
+ 
+    /* "deinterleave" */
+    deinterleave(src,
+                 iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].mono.data,
+                 size, 1);
+
+    /* dupe */
+    samples_duplicate(iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].mono.data,
+                      iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf.data + bufoffset_in,
+                      size, inchannels);
+  } else {
+    // this should never happen
+  }
+
 
   /* only run when
    *   - stream is in playback mode (if we are opened with PLAYBACK)
    *   - stream is in capture mode (if we don't have PLAYBACK)
    */
-  if(0 && ((playback) || (!iemladspa->has_playback))) {
+  if(0 && ((playback) || (!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled))) {
     for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_in + j].index,
-                   iemladspa->inbuf.data + j*size,
+                   iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf.data + j*size,
                    "inport "
                    );
     }
     for(j = 0; j < iemladspa->control_data->num_outchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_out+ j].index,
-                   iemladspa->outbuf.data + j*size,
+                   iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf.data + j*size,
                    "outport");
     }
 
     iemladspa->klass->run(iemladspa->plugininstance, size);
   }
 
-  reinterleave(iemladspa->outbuf.data + bufoffset_out,
-               dst,
-               size, outchannels);
+  if(playback | (alsa_outchannels == outchannels)) {
+    /* in PLAYBACK mode, we always have the correct number of output channels;
+     * interleave the data into sinkchannels.out channels
+     */
+    reinterleave(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf.data + bufoffset_out,
+                 dst,
+                 size, outchannels);
+  } else if (1==alsa_outchannels) {
+    /* if we are in CAPTURE mode, the client-application might receive data in MONO;
+     * mix the data into *channels.out, then interleave it into a MONO buffer
+     */
+    audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].mono, size, 1);
 
+    /* mixdown */
+    samples_mixdown(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf.data + bufoffset_out,
+                    iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].mono.data,
+                    size, outchannels);
+
+    /* "reinterleave" */
+    deinterleave(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].mono.data,
+                 dst,
+                 size, 1);
+  } else {
+    // this should never happen
+  }
   iemladspa->stream_direction = ext->stream;
   return size;
 }
@@ -360,6 +450,7 @@ static int iemladspa_close(snd_pcm_extplug_t *ext) {
 
 static int iemladspa_init(snd_pcm_extplug_t *ext)
 {
+  const unsigned int default_frames=65536;
   snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)ext->private_data;
   int i;
 
@@ -382,11 +473,11 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
                                    &iemladspa->control_data->data[i].data);
   }
 
-  audiobuffer_resize(&iemladspa->inbuf,
-                     65536,
+  audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].buf,
+                     default_frames,
                      iemladspa->control_data->sourcechannels.in+iemladspa->control_data->sinkchannels.in);
-  audiobuffer_resize(&iemladspa->outbuf,
-                     65536,
+  audiobuffer_resize(&iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].buf,
+                     default_frames,
                      iemladspa->control_data->sourcechannels.out+iemladspa->control_data->sinkchannels.out);
 
   return 0;
@@ -586,13 +677,13 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   */
 
   if(SND_PCM_STREAM_PLAYBACK==stream) {
-    iemladspa->has_playback=1;
-    if(iemladspa->extOUT.private_data == iemladspa)return 0;
-    ext=&iemladspa->extOUT;
+    iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled=1;
+    if(iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].ext.private_data == iemladspa)return 0;
+    ext=&iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].ext;
   } else {
-    iemladspa->has_capture=1;
-    if(iemladspa->extIN.private_data == iemladspa)return 0;
-    ext=&iemladspa->extIN;
+    iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].enabled=1;
+    if(iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].ext.private_data == iemladspa)return 0;
+    ext=&iemladspa->streamdir[SND_PCM_STREAM_CAPTURE].ext;
   }
 
   ext->version = SND_PCM_EXTPLUG_VERSION;
