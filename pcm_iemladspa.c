@@ -279,8 +279,6 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
 {
   printf("transfer: stream=%d\tchannels=%d\tslavechannels=%d\n", ext->stream, ext->channels, ext->slave_channels);
 
-  return size;
-
   snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
 
@@ -367,7 +365,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
    *   - stream is in playback mode (if we are opened with PLAYBACK)
    *   - stream is in capture mode (if we don't have PLAYBACK)
    */
-  if(0 && ((playback) || (!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled))) {
+  if((playback) || (!iemladspa->streamdir[SND_PCM_STREAM_PLAYBACK].enabled)) {
     for(j = 0; j < iemladspa->control_data->num_inchannels; j++) {
       connect_port(iemladspa,
                    iemladspa->control_data->data[dataoffset_in + j].index,
