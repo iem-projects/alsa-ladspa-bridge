@@ -42,7 +42,11 @@
 #include <ladspa.h>
 #include "ladspa_utils.h"
 
-#define DEBUG printf("%s:%d %s\t", __FILE__, __LINE__, __FUNCTION__), printf
+#if 0
+# define DEBUG printf("%s:%d %s\t", __FILE__, __LINE__, __FUNCTION__), printf
+#else
+# define DEBUG(...)
+#endif
 
 typedef struct _iemladspa_audiobuf {
   unsigned int frames;
@@ -277,7 +281,7 @@ static snd_pcm_sframes_t iemladspa_transfer(snd_pcm_extplug_t *ext,
                                             snd_pcm_uframes_t src_offset,
                                             snd_pcm_uframes_t size)
 {
-  printf("transfer: stream=%d\tchannels=%d\tslavechannels=%d\n", ext->stream, ext->channels, ext->slave_channels);
+  DEBUG("transfer: stream=%d\tchannels=%d\tslavechannels=%d\n", ext->stream, ext->channels, ext->slave_channels);
 
   snd_pcm_iemladspa_t *iemladspa = (snd_pcm_iemladspa_t *)(ext->private_data);
   const int playback = (SND_PCM_STREAM_PLAYBACK == ext->stream);
@@ -741,7 +745,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
                                    1, /* allow opending MONO */
                                    pcmchannels);
 #else
-  printf("dir=%d\tpcmchannels=%d\n", stream, pcmchannels);
+  DEBUG("dir=%d\tpcmchannels=%d\n", stream, pcmchannels);
   if(1==pcmchannels) {
     snd_pcm_extplug_set_param(ext,
                               SND_PCM_EXTPLUG_HW_CHANNELS,
