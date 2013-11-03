@@ -12,7 +12,8 @@ The LADSPA plugin thus needs four audio in and four audio out ports.
 
 This should allow to build echo-cancellers and similar devices via LADSPA.
 
-IEMLADSPA is based on 'alsaequal' by Charles Eidsness
+IEMLADSPA is based on 'alsaequal' by Charles Eidsness:
+
   http://www.thedigitalmachine.net/alsaequal.html
 
 INSTALL
@@ -31,7 +32,7 @@ DEPENDENCIES
 as part of your linux distro, you can install in Debian (and derivatives, like
 Ubuntu) with 
 
-    sudo aptitude install libasound2-dev ladspa-sdk
+    `sudo aptitude install libasound2-dev ladspa-sdk`
 
 
 USAGE
@@ -43,7 +44,6 @@ sound card 0 modify "plughw:0,0" accordingly.
     ctl.ladspa {
     	type iemladspa;
     }
-    
     pcm.ladspa {
         type iemladspa;
         slave.pcm "hw:0,0";
@@ -51,7 +51,9 @@ sound card 0 modify "plughw:0,0" accordingly.
 
 
 You can adjust the control parameters of the plugin by using any alsa
-mixer, e.g.:  alsamixer -D ladspa
+mixer, e.g.:  
+
+    alsamixer -D ladspa
 
 
 HELP
@@ -63,7 +65,7 @@ Please keep in mind that this is a development release and may have bugs.
 
 More Advanced Stuff:
 ---
-Check out the annotated 'asoundrc' example file.
+Check out the annotated [asoundrc](asoundrc) example file.
 
 controls
 --
