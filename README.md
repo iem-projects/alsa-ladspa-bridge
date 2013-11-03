@@ -19,17 +19,19 @@ INSTALL
 ---
 Download the latest version of the plugin and:
 
- tar xvjf iemladspa-x.x.tar.bz2
- cd iemladspa-x.x
- make
- sudo make install
+    tar xvjf iemladspa-x.x.tar.bz2
+    cd iemladspa-x.x
+    make
+    sudo make install
 
 DEPENDENCIES
 ---
 - LADSPA-SDK
 - ALSA Development headers and alsa-lib -- you may already have it
 as part of your linux distro, you can install in Debian (and derivatives, like
-Ubuntu) with `sudo aptitude install libasound2-dev ladspa-sdk`
+Ubuntu) with 
+
+    sudo aptitude install libasound2-dev ladspa-sdk
 
 
 USAGE
@@ -38,14 +40,14 @@ After installing you will have to modify your local .asoundrc alsa
 configuration file, adding something like this. If you're not using
 sound card 0 modify "plughw:0,0" accordingly.
 
-ctl.ladspa {
-	type iemladspa;
-}
-
-pcm.ladspa {
-    type iemladspa;
-    slave.pcm "hw:0,0";
-}
+    ctl.ladspa {
+    	type iemladspa;
+    }
+    
+    pcm.ladspa {
+        type iemladspa;
+        slave.pcm "hw:0,0";
+    }
 
 
 You can adjust the control parameters of the plugin by using any alsa
@@ -79,9 +81,9 @@ iemladspa currently only supports FLOAT and S16 format for communicating with
 the soundcard ("downstream") and the application ("upstream").
 So you will probably need to pump the data through a plug to change the format.
 
-pcm.<anothername>{
-    type plug;
-    slave.pcm <name>;
-}
+    pcm.<anothername>{
+        type plug;
+        slave.pcm <name>;
+    }
 
 The LADSPA-plugin will *always* work on floating point samples.
