@@ -534,10 +534,7 @@ static int iemladspa_init(snd_pcm_extplug_t *ext)
  */
 
 static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
-                                                          const char*libname,
-                                                          const char*module,
-                                                          const char*controlfile,
-                                                          iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
+                                                          const iemladspa_config_t*config
                                                           ) {
   void *library = NULL;
   const LADSPA_Descriptor *klass=NULL;
@@ -545,14 +542,15 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
   int success=0;
 
   /* Open the LADSPA Plugin */
-  library = LADSPAload(libname);
+  library = LADSPAload(config->ladspa_library);
   if(library == NULL) goto finalize;
 
-  klass = LADSPAfind(library, libname, module);
+  klass = LADSPAfind(library, config->ladspa_library, config->ladspa_module);
   if(klass == NULL)goto finalize;
 
-  control_data = LADSPAcontrolMMAP(klass, controlfile,
-                                   sourcechannels, sinkchannels);
+  control_data = LADSPAcontrolMMAP(klass, config->controlfile,
+                                   config->channels[SND_PCM_STREAM_CAPTURE],
+                                   config->channels[SND_PCM_STREAM_PLAYBACK]);
 
   if(NULL == control_data) goto finalize;
   success=1;
@@ -577,15 +575,11 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
 
 
 static snd_pcm_iemladspa_t * iemladspa_mergeplugin_findorcreate(const void *key,
-                                                                const char*libname,
-                                                                const char*module,
-                                                                const char*controlfile,
-                                                                iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels
-                                                                ) {
+                                                                const iemladspa_config_t*config) {
   /* find a 'iemladspa' instance with 'key' */
   snd_pcm_iemladspa_t*iemladspa=linked_list_find(s_mergeplugin_list, key);
   if(!iemladspa) {
-    iemladspa = iemladspa_mergeplugin_create(key, libname, module, controlfile, sourcechannels, sinkchannels);
+    iemladspa = iemladspa_mergeplugin_create(key, config);
     s_mergeplugin_list = linked_list_add(s_mergeplugin_list, key, iemladspa);
   }
   if(iemladspa)
@@ -627,12 +621,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   /* ========= init phase done ============ */
 
   /* Intialize the local object data */
-  iemladspa = iemladspa_mergeplugin_findorcreate(configname,
-                                                 iconf->ladspa_library,
-                                                 iconf->ladspa_module,
-                                                 iconf->controlfile,
-                                                 iconf->channels[SND_PCM_STREAM_CAPTURE],
-                                                 iconf->channels[SND_PCM_STREAM_PLAYBACK]);
+  iemladspa = iemladspa_mergeplugin_findorcreate(configname, iconf);
   if (iemladspa == NULL)
     return -ENOMEM;
 
