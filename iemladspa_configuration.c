@@ -22,7 +22,7 @@
 
 #include <string.h>
 
-void iemladspa_config_print(iemladspa_config_t*conf) {
+static void iemladspa_config_print(iemladspa_config_t*conf) {
   fprintf(stderr, "conf: %p\n", conf);
   fprintf(stderr, "\ttype=%d\n", conf->type);
   fprintf(stderr, "\tcontrolfile=%s\n", conf->controlfile);
