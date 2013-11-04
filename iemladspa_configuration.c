@@ -50,21 +50,22 @@ iemladspa_config_t*iemladspa_config_create(iemladspa_config_type_t type) {
   iemladspa_config_t*conf=(iemladspa_config_t*)malloc(sizeof(iemladspa_config_t));
 
   if(conf) {
+    conf->type = type;
+
     /* fill with default values */
     conf->controlfile=NULL;
-    conf->slave = NULL;
+    conf->configname =NULL;
 
     conf->channels[SND_PCM_STREAM_CAPTURE].in   = 2;
     conf->channels[SND_PCM_STREAM_CAPTURE].out  = 2;
     conf->channels[SND_PCM_STREAM_PLAYBACK].in  = 2;
     conf->channels[SND_PCM_STREAM_PLAYBACK].out = 2;
 
-    conf->format  = SND_PCM_FORMAT_S16;
-
     conf->ladspa_library=strdup("/usr/lib/ladspa/iemladspa.so");
     conf->ladspa_module =strdup("iemladspa");
 
-    conf->type = type;
+    conf->slave = NULL;
+    conf->format  = SND_PCM_FORMAT_S16;
   }
   return conf;
 }
@@ -136,7 +137,9 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   int pcm=(PCM==CONF->type);
 
   if (snd_config_get_id(conf, &configname) < 0)
-    configname=NULL;
+    configname="alsaiemladspa";
+
+
 
   /* Parse configuration options from asoundrc */
   snd_config_for_each(i, next, conf) {

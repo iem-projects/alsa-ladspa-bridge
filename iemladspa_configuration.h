@@ -32,14 +32,16 @@ typedef enum {
 
 typedef struct iemladspa_config_ {
   iemladspa_config_type_t type;
-  snd_config_t *slave;
+  const char*configname;
   const char*controlfile;
   iemladspa_iochannels_t channels[SND_PCM_STREAM_LAST+1];
-  unsigned int format;
 
   /* LADSPA */
   const char*ladspa_library;
   const char*ladspa_module;
+
+  unsigned int format;
+  snd_config_t *slave;
 } iemladspa_config_t;
 
 iemladspa_config_t*iemladspa_config_create(iemladspa_config_type_t type);
