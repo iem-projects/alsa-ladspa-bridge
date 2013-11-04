@@ -605,9 +605,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 {
   snd_pcm_iemladspa_t *iemladspa=NULL;
   int err;
-  iemladspa_iochannels_t sourcechannels, sinkchannels;
-  long inchannels = 2;
-  long outchannels = 2;
   unsigned int pcmchannels = 2;
   snd_pcm_extplug_t*ext=NULL;
   const char *configname = NULL;
@@ -627,13 +624,6 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
 
-  sourcechannels.in = sourcechannels.out = inchannels;
-  sinkchannels.in   = sinkchannels.out   = outchannels;
-
-  if (! iconf->slave) {
-    SNDERR("No slave configuration for iemladspa pcm");
-    return -EINVAL;
-  }
   /* ========= init phase done ============ */
 
   /* Intialize the local object data */
