@@ -612,7 +612,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   err=iemladspa_config_init(iconf, conf);
   if(err<0) {
     iemladspa_config_free(iconf);
-    return -EINVAL;
+    return err;
   }
 
   if (snd_config_get_id(conf, &configname) < 0)
