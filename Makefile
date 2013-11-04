@@ -9,9 +9,9 @@ CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC -O0 -g
 LD := gcc
 LDFLAGS += -Wall -shared -lasound
 
-HEADERS=iemladspa_configuration.h ladspa_utils.h
+HEADERS=iemladspa_configuration.h iemladspa_utils.h ladspa_utils.h
 
-SND_PCM_OBJECTS = pcm_iemladspa.o ladspa_utils.o iemladspa_configuration.o
+SND_PCM_OBJECTS = pcm_iemladspa.o ladspa_utils.o iemladspa_configuration.o iemladspa_utils.o
 SND_PCM_LIBS =
 SND_PCM_BIN = libasound_module_pcm_iemladspa.so
 
