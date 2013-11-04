@@ -322,8 +322,7 @@ void LADSPAcontrolUnMMAP(LADSPA_Control *control)
 }
 
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
-                                   const char *controls_filename,
-                                   iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels)
+                                   const iemladspa_config_t*config)
 {
   const char * homePath;
   char *filename;
@@ -336,19 +335,19 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
   unsigned long length;
 
   /* Create config filename, if no path specified store in home directory */
-  if (controls_filename[0] == '/') {
-    filename = malloc(strlen(controls_filename) + 1);
+  if (config->controlfile[0] == '/') {
+    filename = malloc(strlen(config->controlfile) + 1);
     if (filename==NULL) {
       return NULL;
     }
-    sprintf(filename, "%s", controls_filename);
+    sprintf(filename, "%s", config->controlfile);
   } else {
     const char*subdir="/.config/ladspa.iem.at/";
     homePath = getenv("HOME");
     if (homePath==NULL) {
       return NULL;
     }
-    filename = malloc(strlen(controls_filename) + strlen(subdir) + strlen(homePath) + 1);
+    filename = malloc(strlen(config->controlfile) + strlen(subdir) + strlen(homePath) + 1);
     if (filename==NULL) {
       return NULL;
     }
@@ -357,7 +356,7 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
       return NULL;
     }
 
-    sprintf(filename, "%s%s%s", homePath, subdir, controls_filename);
+    sprintf(filename, "%s%s%s", homePath, subdir, config->controlfile);
   }
 
   /* Count the number of controls */
@@ -379,8 +378,11 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
     return NULL;
   }
 
-  if(num_inchannels != (sourcechannels.in  + sinkchannels.in)) {
-    fprintf(stderr, "LADSPA Module has %d channels but we need %d+%d.\n", num_inchannels, sourcechannels.in, sinkchannels.in);
+  if(num_inchannels != (config->channels[SND_PCM_STREAM_CAPTURE].in + config->channels[SND_PCM_STREAM_PLAYBACK].in)) {
+    fprintf(stderr, "LADSPA Module has %d channels but we need %d+%d.\n",
+            num_inchannels,
+            config->channels[SND_PCM_STREAM_CAPTURE].in,
+            config->channels[SND_PCM_STREAM_PLAYBACK].in);
     return NULL;
   }
 
@@ -411,10 +413,10 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
       default_controls->length = length;
       default_controls->id = psDescriptor->UniqueID;
 
-      default_controls->sourcechannels.in  = sourcechannels.in;
-      default_controls->sourcechannels.out = sourcechannels.out;
-      default_controls->sinkchannels.in    = sinkchannels.in;
-      default_controls->sinkchannels.out   = sinkchannels.out;
+      default_controls->sourcechannels.in  = config->channels[SND_PCM_STREAM_CAPTURE].in;
+      default_controls->sourcechannels.out = config->channels[SND_PCM_STREAM_CAPTURE].out;
+      default_controls->sinkchannels.in    = config->channels[SND_PCM_STREAM_PLAYBACK].in;
+      default_controls->sinkchannels.out   = config->channels[SND_PCM_STREAM_PLAYBACK].out;
 
       default_controls->num_controls    = num_controls;
       default_controls->num_inchannels  = num_inchannels;
@@ -496,17 +498,23 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
     return NULL;
   }
 
-  if(ptr->sourcechannels.in != sourcechannels.in || ptr->sourcechannels.out != sourcechannels.out) {
+  if(ptr->sourcechannels.in != config->channels[SND_PCM_STREAM_CAPTURE].in ||
+     ptr->sourcechannels.out != config->channels[SND_PCM_STREAM_CAPTURE].out) {
     fprintf(stderr, "%s is not a control file doesn't have %d/%d source channels.\n",
-            filename, sourcechannels.in, sourcechannels.out);
+            filename,
+            config->channels[SND_PCM_STREAM_CAPTURE].in,
+            config->channels[SND_PCM_STREAM_CAPTURE].out);
     LADSPAcontrolUnMMAP(ptr);
     free(filename);
     return NULL;
   }
 
-  if(ptr->sinkchannels.in != sinkchannels.in || ptr->sinkchannels.out != sinkchannels.out) {
+  if(ptr->sinkchannels.in != config->channels[SND_PCM_STREAM_PLAYBACK].in ||
+     ptr->sinkchannels.out != config->channels[SND_PCM_STREAM_PLAYBACK].out) {
     fprintf(stderr, "%s is not a control file doesn't have %d/%d sink channels.\n",
-            filename, sinkchannels.in, sinkchannels.out);
+            filename,
+            config->channels[SND_PCM_STREAM_PLAYBACK].in,
+            config->channels[SND_PCM_STREAM_PLAYBACK].out);
     LADSPAcontrolUnMMAP(ptr);
     free(filename);
     return NULL;

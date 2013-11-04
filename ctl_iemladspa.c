@@ -222,10 +222,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   }
 
   /* MMAP to the controls file */
-  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass,
-                                              iconf->controlfile,
-                                              iconf->channels[SND_PCM_STREAM_CAPTURE],
-                                              iconf->channels[SND_PCM_STREAM_PLAYBACK]);
+  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, iconf);
   if(iemladspa->control_data == NULL) {
     retval=-1; goto cleanup;
   }

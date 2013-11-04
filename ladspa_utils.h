@@ -58,8 +58,7 @@ typedef struct LADSPA_Control_ {
   LADSPA_Control_Data data[]; /* controls, inchannels, outchannels */
 } LADSPA_Control;
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
-                                   const char *controls_filename,
-                                   iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels);
+                                   const iemladspa_config_t*config);
 void LADSPAcontrolUnMMAP(LADSPA_Control *control);
 
 #endif

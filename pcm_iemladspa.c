@@ -518,9 +518,7 @@ static snd_pcm_iemladspa_t * iemladspa_mergeplugin_create(const void *key,
   klass = LADSPAfind(library, config->ladspa_library, config->ladspa_module);
   if(klass == NULL)goto finalize;
 
-  control_data = LADSPAcontrolMMAP(klass, config->controlfile,
-                                   config->channels[SND_PCM_STREAM_CAPTURE],
-                                   config->channels[SND_PCM_STREAM_PLAYBACK]);
+  control_data = LADSPAcontrolMMAP(klass, config);
 
   if(NULL == control_data) goto finalize;
   success=1;
@@ -624,8 +622,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   /* MMAP to the controls file */
   if(!iemladspa->control_data) {
-    iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, iconf->controlfile,
-                                                iconf->channels[SND_PCM_STREAM_CAPTURE], iconf->channels[SND_PCM_STREAM_PLAYBACK]);
+    iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, iconf);
     if(iemladspa->control_data == NULL) {
       return -1;
     }
