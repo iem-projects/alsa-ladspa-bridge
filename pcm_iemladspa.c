@@ -123,36 +123,6 @@ linked_list_t*linked_list_delete(linked_list_t*inlist, const void*key) {
 }
 static linked_list_t*s_mergeplugin_list = NULL;
 
-static void print_pcm_extplug(snd_pcm_extplug_t*ext) {
-  printf("EXTPLUG: %p\n", ext);
-  printf("EXTPLUG: name=%s\n", ext->name);
-  printf("EXTPLUG: version=%d\n", ext->version);
-  printf("EXTPLUG: callback=%p\n", ext->callback);
-  printf("EXTPLUG: private_data=%p\n", ext->private_data);
-  printf("EXTPLUG: pcm=%p\n", ext->pcm);
-  printf("EXTPLUG: stream=%d\n", ext->stream);
-  printf("EXTPLUG: format=%d\n", ext->format);
-  printf("EXTPLUG: subformat=%d\n", ext->subformat);
-  printf("EXTPLUG: channels=%d\n", ext->channels);
-  printf("EXTPLUG: rate=%d\n", ext->rate);
-  printf("EXTPLUG: slave_format=%d\n", ext->slave_format);
-  printf("EXTPLUG: slave_subformat=%d\n", ext->slave_subformat);
-  printf("EXTPLUG: slave_channels=%d\n", ext->slave_channels);
-  printf("\n");
-}
-
-static void print_pcm_config(snd_config_t*config, const char*name) {
-  int err;
-  const char*str;
-
-  printf("SNDCONFIG[%p]: '%s'=[%d]\n", config, name, snd_config_get_type(config));
-  err=snd_config_get_id(config, &str);
-  printf("SNDCONFIG[%p]: id[%d]=%p: %s\n", config, err, str, str);
-  err=snd_config_get_string(config, &str);
-  printf("SNDCONFIG[%p]: string[%d]=%p: %s\n", config, err, str, str);
-  printf("\n");
-}
-
 static void audiobuffer_free(iemladspa_audiobuf_t *iemladspa) {
   if(iemladspa->data)free(iemladspa->data);
   iemladspa->data=NULL;
