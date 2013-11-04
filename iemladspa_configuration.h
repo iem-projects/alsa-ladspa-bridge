@@ -17,11 +17,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #ifndef IEMLADSPA_CONFIGURATION_H
 #define IEMLADSPA_CONFIGURATION_H
-
-#include "ladspa_utils.h"
 #include <alsa/asoundlib.h>
 
 typedef enum {
@@ -29,6 +26,11 @@ typedef enum {
   PCM,
   CTL
 } iemladspa_config_type_t;
+
+typedef struct _iemladspa_iochannels {
+  unsigned int in;
+  unsigned int out;
+} iemladspa_iochannels_t;
 
 typedef struct iemladspa_config_ {
   iemladspa_config_type_t type;

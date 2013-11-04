@@ -7,6 +7,7 @@
 #define LADSPA_SDK_LOAD_PLUGIN_LIB
 
 #include <ladspa.h>
+#include "iemladspa_configuration.h"
 
 /* This function call takes a plugin library filename, searches for
    the library along the LADSPA_PATH, loads it with dlopen() and
@@ -34,15 +35,6 @@ LADSPAfind(void * pvLADSPAPluginLibrary,
 int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
                   const unsigned long          lSampleRate,
                   LADSPA_Data                * pfResult);
-
-
-typedef struct _iemladspa_iochannels {
-  unsigned int in;
-  unsigned int out;
-} iemladspa_iochannels_t;
-
-
-
 
 /* MMAP to a controls file */
 #define LADSPA_CNTRL_INPUT	0
