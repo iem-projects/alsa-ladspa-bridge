@@ -675,7 +675,17 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
       }
       continue;
     }
-
+    if (strcmp(id, "sink") == 0) {
+      snd_config_iterator_t subi, subnext;
+      snd_config_for_each(subi, subnext, n) {
+	snd_config_t *subn = snd_config_iterator_entry(subi);
+	const char *subid;
+	if (snd_config_get_id(subn, &subid) < 0)
+	  continue;
+	printf("%s:config %s\n", id, subid);
+      }
+      continue;
+    }
     SNDERR("Unknown field %s", id);
     return -EINVAL;
   }
