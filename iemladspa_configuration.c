@@ -37,6 +37,15 @@ static void iemladspa_config_print(iemladspa_config_t*conf) {
   fprintf(stderr, "\tmodule =%s\n", conf->ladspa_module);
 }
 
+static char*reassign_string(const char*dest, const char*src) {
+  if(dest)free((void*)dest);
+  dest=NULL;
+  if(src) {
+    dest=strdup(src);
+  }
+  return dest;
+}
+
 iemladspa_config_t*iemladspa_config_create(iemladspa_config_type_t type) {
   iemladspa_config_t*conf=(iemladspa_config_t*)malloc(sizeof(iemladspa_config_t));
 
@@ -151,14 +160,12 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
     }
     if (strcmp(id, "library") == 0) {
       snd_config_get_string(n, &str);
-      if(CONF->ladspa_library)free((void*)CONF->ladspa_library);
-      CONF->ladspa_library=strdup(str);
+      CONF->ladspa_library=reassign_string(CONF->ladspa_library, str);
       continue;
     }
     if (strcmp(id, "module") == 0) {
       snd_config_get_string(n, &str);
-      if(CONF->ladspa_module)free((void*)CONF->ladspa_module);
-      CONF->ladspa_module=strdup(str);
+      CONF->ladspa_module=reassign_string(CONF->ladspa_module, str);
       continue;
     }
     if (pcm && (strcmp(id, "format") == 0)) {
@@ -209,8 +216,7 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   }
 
   if(controls) {
-    if(CONF->controlfile)free((void*)CONF->controlfile);
-    CONF->controlfile=strdup(controls);
+    CONF->controlfile=reassign_string(CONF->controlfile, str);
   } else if (configname) {
     controls=(char*)calloc(strlen(configname)+5, 1);
     if(!controls) {
@@ -218,8 +224,8 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
       return -EINVAL;
     }
     sprintf(controls, "%s.bin", configname);
-    if(CONF->controlfile)free((void*)CONF->controlfile);
-    CONF->controlfile=controls;
+    CONF->controlfile=reassign_string(CONF->controlfile, str);
+    free(controls);
   }
 
   if(pcm && NULL == CONF->slave) {
