@@ -318,50 +318,50 @@ int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
 
 void LADSPAcontrolUnMMAP(LADSPA_Control *control)
 {
-	munmap(control, control->length);
+  munmap(control, control->length);
 }
 
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
                                    const char *controls_filename,
                                    iemladspa_iochannels_t sourcechannels, iemladspa_iochannels_t sinkchannels)
 {
-	const char * homePath;
-	char *filename;
-	unsigned long i, index, iindex, oindex;
+  const char * homePath;
+  char *filename;
+  unsigned long i, index, iindex, oindex;
   unsigned int num_controls = 0, num_inchannels = 0, num_outchannels = 0;
 
-	LADSPA_Control *default_controls;
-	LADSPA_Control *ptr;
-	int fd;
-	unsigned long length;
+  LADSPA_Control *default_controls;
+  LADSPA_Control *ptr;
+  int fd;
+  unsigned long length;
 
-	/* Create config filename, if no path specified store in home directory */
-	if (controls_filename[0] == '/') {
-		filename = malloc(strlen(controls_filename) + 1);
-		if (filename==NULL) {
-			return NULL;
-		}
-		sprintf(filename, "%s", controls_filename);
-	} else {
+  /* Create config filename, if no path specified store in home directory */
+  if (controls_filename[0] == '/') {
+    filename = malloc(strlen(controls_filename) + 1);
+    if (filename==NULL) {
+      return NULL;
+    }
+    sprintf(filename, "%s", controls_filename);
+  } else {
     const char*subdir="/.config/ladspa.iem.at/";
-		homePath = getenv("HOME");
-		if (homePath==NULL) {
-			return NULL;
-		}
-		filename = malloc(strlen(controls_filename) + strlen(subdir) + strlen(homePath) + 1);
-		if (filename==NULL) {
-			return NULL;
-		}
-		sprintf(filename, "%s%s", homePath, subdir);
+    homePath = getenv("HOME");
+    if (homePath==NULL) {
+      return NULL;
+    }
+    filename = malloc(strlen(controls_filename) + strlen(subdir) + strlen(homePath) + 1);
+    if (filename==NULL) {
+      return NULL;
+    }
+    sprintf(filename, "%s%s", homePath, subdir);
     if(mkpath(filename, 0770)) {
       return NULL;
     }
 
-		sprintf(filename, "%s%s%s", homePath, subdir, controls_filename);
-	}
+    sprintf(filename, "%s%s%s", homePath, subdir, controls_filename);
+  }
 
-	/* Count the number of controls */
-	num_controls = 0;
+  /* Count the number of controls */
+  num_controls = 0;
   num_inchannels=0;
   num_outchannels=0;
 
@@ -374,145 +374,145 @@ LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
       num_outchannels++;
   }
 
-	if(num_controls == 0) {
-		fprintf(stderr, "No Controls on LADSPA Module.\n");
-		return NULL;
-	}
-
-  if(num_inchannels != (sourcechannels.in  + sinkchannels.in)) {
-		fprintf(stderr, "LADSPA Module has %d channels but we need %d+%d.\n", num_inchannels, sourcechannels.in, sinkchannels.in);
-		return NULL;
+  if(num_controls == 0) {
+    fprintf(stderr, "No Controls on LADSPA Module.\n");
+    return NULL;
   }
 
-	/* Calculate the required file-size */
-	length =                                          sizeof(LADSPA_Control)
+  if(num_inchannels != (sourcechannels.in  + sinkchannels.in)) {
+    fprintf(stderr, "LADSPA Module has %d channels but we need %d+%d.\n", num_inchannels, sourcechannels.in, sinkchannels.in);
+    return NULL;
+  }
+
+  /* Calculate the required file-size */
+  length =                                          sizeof(LADSPA_Control)
     + (num_inchannels+num_outchannels+num_controls)*sizeof(LADSPA_Control_Data)
     ;
 
-	/* Open config file */
-	fd = open(filename, O_RDWR);
-	if(fd < 0) {
-		if(errno == ENOENT){
-			/* If the file doesn't exist create it and populate
+  /* Open config file */
+  fd = open(filename, O_RDWR);
+  if(fd < 0) {
+    if(errno == ENOENT){
+      /* If the file doesn't exist create it and populate
          it with default data. */
-			fd = open(filename, O_RDWR | O_CREAT, 0664);
-			if(fd < 0) {
-				fprintf(stderr, "Failed to open controls file:%s.\n",
+      fd = open(filename, O_RDWR | O_CREAT, 0664);
+      if(fd < 0) {
+        fprintf(stderr, "Failed to open controls file:%s.\n",
                 filename);
-				free(filename);
-				return NULL;
-			}
-			/* Create default controls stucture */
-			default_controls = malloc(length);
-			if(default_controls == NULL) {
-				free(filename);
-				return NULL;
-			}
-			default_controls->length = length;
-			default_controls->id = psDescriptor->UniqueID;
+        free(filename);
+        return NULL;
+      }
+      /* Create default controls stucture */
+      default_controls = malloc(length);
+      if(default_controls == NULL) {
+        free(filename);
+        return NULL;
+      }
+      default_controls->length = length;
+      default_controls->id = psDescriptor->UniqueID;
 
       default_controls->sourcechannels.in  = sourcechannels.in;
       default_controls->sourcechannels.out = sourcechannels.out;
       default_controls->sinkchannels.in    = sinkchannels.in;
       default_controls->sinkchannels.out   = sinkchannels.out;
 
-			default_controls->num_controls    = num_controls;
-			default_controls->num_inchannels  = num_inchannels;
-			default_controls->num_outchannels = num_outchannels;
+      default_controls->num_controls    = num_controls;
+      default_controls->num_inchannels  = num_inchannels;
+      default_controls->num_outchannels = num_outchannels;
 
-			for(i = 0, index=0, iindex=0, oindex=0; i < psDescriptor->PortCount; i++) {
-				if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_CONTROL) {
+      for(i = 0, index=0, iindex=0, oindex=0; i < psDescriptor->PortCount; i++) {
+        if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_CONTROL) {
           default_controls->data[0+index].index = i;
 
           LADSPADefault(&psDescriptor->PortRangeHints[i], 44100,
                         &default_controls->data[0+index].data);
 
-					if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_INPUT) {
-						default_controls->data[0+index].type = LADSPA_CNTRL_INPUT;
-					} else {
-						default_controls->data[0+index].type = LADSPA_CNTRL_OUTPUT;
-					}
-					index++;
+          if(psDescriptor->PortDescriptors[i]&LADSPA_PORT_INPUT) {
+            default_controls->data[0+index].type = LADSPA_CNTRL_INPUT;
+          } else {
+            default_controls->data[0+index].type = LADSPA_CNTRL_OUTPUT;
+          }
+          index++;
 
-				} else if(psDescriptor->PortDescriptors[i] ==
+        } else if(psDescriptor->PortDescriptors[i] ==
                   (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-					default_controls->data[num_controls+iindex].index = i;
+          default_controls->data[num_controls+iindex].index = i;
           iindex++;
 
-				} else if(psDescriptor->PortDescriptors[i] ==
+        } else if(psDescriptor->PortDescriptors[i] ==
                   (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-					default_controls->data[num_controls+num_inchannels + oindex].index = i;
+          default_controls->data[num_controls+num_inchannels + oindex].index = i;
           oindex++;
-				}
-			}
+        }
+      }
 #if 0
-			if((default_controls->output == NULL) ||
+      if((default_controls->output == NULL) ||
          (default_controls->input == NULL)) {
         fprintf(stderr,
                 "LADSPA Plugin must have one audio channel\n");
-				free(default_controls);
-				free(filename);
-				return NULL;
-			}
+        free(default_controls);
+        free(filename);
+        return NULL;
+      }
 #endif
 
-			/* Write the default data to the file. */
-			if(write(fd, default_controls, length) < 0) {
-				free(default_controls);
-				free(filename);
-				return NULL;
-			}
-			free(default_controls);
-		} else {
-			free(filename);
-			return NULL;
-		}
-	}
+      /* Write the default data to the file. */
+      if(write(fd, default_controls, length) < 0) {
+        free(default_controls);
+        free(filename);
+        return NULL;
+      }
+      free(default_controls);
+    } else {
+      free(filename);
+      return NULL;
+    }
+  }
 
-	/* MMap Configuration File */
-	ptr = (LADSPA_Control*)mmap(NULL, length,
+  /* MMap Configuration File */
+  ptr = (LADSPA_Control*)mmap(NULL, length,
                               PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	close (fd);
+  close (fd);
 
-	if(ptr == MAP_FAILED) {
-		free(filename);
-		return NULL;
-	}
+  if(ptr == MAP_FAILED) {
+    free(filename);
+    return NULL;
+  }
 
-	/* Make sure we're mapped to the right file type. */
-	if(ptr->length != length) {
-		fprintf(stderr, "%s is the wrong length.\n",
+  /* Make sure we're mapped to the right file type. */
+  if(ptr->length != length) {
+    fprintf(stderr, "%s is the wrong length.\n",
             filename);
-		LADSPAcontrolUnMMAP(ptr);
-		free(filename);
-		return NULL;
-	}
+    LADSPAcontrolUnMMAP(ptr);
+    free(filename);
+    return NULL;
+  }
 
-	if(ptr->id != psDescriptor->UniqueID) {
-		fprintf(stderr, "%s is not a control file for ladspa id %ld.\n",
+  if(ptr->id != psDescriptor->UniqueID) {
+    fprintf(stderr, "%s is not a control file for ladspa id %ld.\n",
             filename, ptr->id);
-		LADSPAcontrolUnMMAP(ptr);
-		free(filename);
-		return NULL;
-	}
+    LADSPAcontrolUnMMAP(ptr);
+    free(filename);
+    return NULL;
+  }
 
-	if(ptr->sourcechannels.in != sourcechannels.in || ptr->sourcechannels.out != sourcechannels.out) {
-		fprintf(stderr, "%s is not a control file doesn't have %d/%d source channels.\n",
+  if(ptr->sourcechannels.in != sourcechannels.in || ptr->sourcechannels.out != sourcechannels.out) {
+    fprintf(stderr, "%s is not a control file doesn't have %d/%d source channels.\n",
             filename, sourcechannels.in, sourcechannels.out);
-		LADSPAcontrolUnMMAP(ptr);
-		free(filename);
-		return NULL;
-	}
+    LADSPAcontrolUnMMAP(ptr);
+    free(filename);
+    return NULL;
+  }
 
-	if(ptr->sinkchannels.in != sinkchannels.in || ptr->sinkchannels.out != sinkchannels.out) {
-		fprintf(stderr, "%s is not a control file doesn't have %d/%d sink channels.\n",
+  if(ptr->sinkchannels.in != sinkchannels.in || ptr->sinkchannels.out != sinkchannels.out) {
+    fprintf(stderr, "%s is not a control file doesn't have %d/%d sink channels.\n",
             filename, sinkchannels.in, sinkchannels.out);
-		LADSPAcontrolUnMMAP(ptr);
-		free(filename);
-		return NULL;
-	}
+    LADSPAcontrolUnMMAP(ptr);
+    free(filename);
+    return NULL;
+  }
 
 
-	free(filename);
-	return ptr;
+  free(filename);
+  return ptr;
 }

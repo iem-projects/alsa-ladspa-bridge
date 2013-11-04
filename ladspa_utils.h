@@ -26,14 +26,14 @@ void LADSPAunload(void * pvLADSPAPluginLibrary);
    informative error messages. */
 const LADSPA_Descriptor *
 LADSPAfind(void * pvLADSPAPluginLibrary,
-			   const char * pcPluginLibraryFilename,
-			   const char * pcPluginLabel);
+           const char * pcPluginLibraryFilename,
+           const char * pcPluginLabel);
 
 /* Find the default value for a port. Return 0 if a default is found
    and -1 if not. */
 int LADSPADefault(const LADSPA_PortRangeHint * psPortRangeHint,
-		     const unsigned long          lSampleRate,
-		     LADSPA_Data                * pfResult);
+                  const unsigned long          lSampleRate,
+                  LADSPA_Data                * pfResult);
 
 
 typedef struct _iemladspa_iochannels {
@@ -48,22 +48,22 @@ typedef struct _iemladspa_iochannels {
 #define LADSPA_CNTRL_INPUT	0
 #define LADSPA_CNTRL_OUTPUT	1
 typedef struct LADSPA_Control_Data_ {
-	int index;
-	LADSPA_Data data;
-	int type;
+  int index;
+  LADSPA_Data data;
+  int type;
 } LADSPA_Control_Data;
 typedef struct LADSPA_Control_ {
-	unsigned long length;
-	unsigned long id;
+  unsigned long length;
+  unsigned long id;
   iemladspa_iochannels_t sourcechannels; /* source device (e.g. microphone) channels */
   iemladspa_iochannels_t sinkchannels;   /* sink device (e.g. speaker) channels */
 
-	unsigned long num_controls;    /* number of controls in ladspa-plugin (input only?) */
+  unsigned long num_controls;    /* number of controls in ladspa-plugin (input only?) */
 
-	unsigned long num_inchannels;  /* number of input ports in ladspa-plugin */  // DEPRECATED, use sourcechannels.in+sinkchannels.in
+  unsigned long num_inchannels;  /* number of input ports in ladspa-plugin */  // DEPRECATED, use sourcechannels.in+sinkchannels.in
   unsigned long num_outchannels; /* number of output ports in ladspa-plugin */ // DEPRECATED, use sourcechannels.out+sinkchannels.out
 
-	LADSPA_Control_Data data[]; /* controls, inchannels, outchannels */
+  LADSPA_Control_Data data[]; /* controls, inchannels, outchannels */
 } LADSPA_Control;
 LADSPA_Control * LADSPAcontrolMMAP(const LADSPA_Descriptor *psDescriptor,
                                    const char *controls_filename,
