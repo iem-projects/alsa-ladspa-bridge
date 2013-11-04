@@ -784,30 +784,22 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
     ? iemladspa->control_data->sourcechannels.out
     : iemladspa->control_data->sinkchannels.in;
 
-  /* MONO support: we really should make an enumeration, rather than minmax */
-#if 0
-  snd_pcm_extplug_set_param_minmax(ext,
-                                   SND_PCM_EXTPLUG_HW_CHANNELS,
-                                   1, /* allow opending MONO */
-                                   pcmchannels);
-#else
-  DEBUG("dir=%d\tpcmchannels=%d\n", stream, pcmchannels);
+  /* MONO support */
   if(1==pcmchannels) {
     snd_pcm_extplug_set_param(ext,
                               SND_PCM_EXTPLUG_HW_CHANNELS,
                               pcmchannels);
   } else {
     unsigned int list [2];
-    list[1]=1;
     list[0]=pcmchannels;
+    list[1]=1;
     snd_pcm_extplug_set_param_list(ext,
                                    SND_PCM_EXTPLUG_HW_CHANNELS,
                                    2, list);
   }
-#endif
 
   snd_pcm_extplug_set_slave_param_minmax(ext,
-                                  SND_PCM_EXTPLUG_HW_CHANNELS,
+                                         SND_PCM_EXTPLUG_HW_CHANNELS,
                                          pcmchannels,
                                          pcmchannels);
 
