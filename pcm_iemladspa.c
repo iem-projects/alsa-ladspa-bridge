@@ -648,7 +648,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   /* Create the ALSA External Plugin */
   err = snd_pcm_extplug_create(ext, name, root, iconf->slave, stream, mode);
   if (err < 0) {
-    SNDERR("could'nt create extplug '%s'.", name);
+    SNDERR("couldn't create extplug '%s'.", name);
     return err;
   }
 
