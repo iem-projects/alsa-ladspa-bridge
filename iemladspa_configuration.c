@@ -128,7 +128,7 @@ void iemladspa_config_free(iemladspa_config_t*conf) {
   free(conf);
 }
 
-int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
+int iemladspa_config_parse(iemladspa_config_t*CONF, snd_config_t*conf) {
   snd_config_iterator_t i, next;
   const char*str=NULL;
   char *controls = NULL;

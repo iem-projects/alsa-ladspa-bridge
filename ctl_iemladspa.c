@@ -177,7 +177,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   if(!iconf) {
     return -EINVAL;
   }
-  err=iemladspa_config_init(iconf, conf);
+  err=iemladspa_config_parse(iconf, conf);
   if(err<0) {
     iemladspa_config_free(iconf);
     return -EINVAL;

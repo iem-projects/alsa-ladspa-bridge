@@ -45,7 +45,7 @@ typedef struct iemladspa_config_ {
 } iemladspa_config_t;
 
 iemladspa_config_t*iemladspa_config_create(iemladspa_config_type_t type);
-int iemladspa_config_init(iemladspa_config_t*conf, snd_config_t *alsaconf);
+int iemladspa_config_parse(iemladspa_config_t*conf, snd_config_t *alsaconf);
 void iemladspa_config_free(iemladspa_config_t*conf);
 
 #endif /* IEMLADSPA_CONFIGURATION_H */
