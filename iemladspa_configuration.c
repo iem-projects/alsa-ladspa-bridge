@@ -37,7 +37,7 @@ static void iemladspa_config_print(iemladspa_config_t*conf) {
   fprintf(stderr, "\tmodule =%s\n", conf->ladspa_module);
 }
 
-static char*reassign_string(const char*dest, const char*src) {
+static const char*reassign_string(const char*dest, const char*src) {
   if(dest)free((void*)dest);
   dest=NULL;
   if(src) {
