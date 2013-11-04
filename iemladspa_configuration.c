@@ -124,6 +124,8 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   char *controls = NULL;
   const char *configname = NULL;
 
+  int pcm=(PCM==CONF->type);
+
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
 
@@ -136,10 +138,12 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
       continue;
     if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0 || strcmp(id, "hint") == 0)
       continue;
-    if (strcmp(id, "slave") == 0) {
+
+    if (pcm && (strcmp(id, "slave") == 0)) {
       CONF->slave = n;
       continue;
     }
+
     if (strcmp(id, "controls") == 0) {
       snd_config_get_string(n, &str);
       controls=(char*)str;
@@ -157,7 +161,7 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
       CONF->ladspa_module=strdup(str);
       continue;
     }
-    if (strcmp(id, "format") == 0) {
+    if (pcm && (strcmp(id, "format") == 0)) {
       int format;
       snd_config_get_string(n, &str);
       format=snd_pcm_format_value(str);
@@ -216,6 +220,11 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
     sprintf(controls, "%s.bin", configname);
     if(CONF->controlfile)free((void*)CONF->controlfile);
     CONF->controlfile=controls;
+  }
+
+  if(pcm && NULL == CONF->slave) {
+    SNDERR("No slave configuration for pcm.%s", configname);
+    return -EINVAL;
   }
 
   iemladspa_config_print(CONF);
