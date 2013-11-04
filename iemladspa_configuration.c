@@ -43,6 +43,7 @@ iemladspa_config_t*iemladspa_config_create(iemladspa_config_type_t type) {
   if(conf) {
     /* fill with default values */
     conf->controlfile=NULL;
+    conf->slave = NULL;
 
     conf->channels[SND_PCM_STREAM_CAPTURE].in   = 2;
     conf->channels[SND_PCM_STREAM_CAPTURE].out  = 2;
@@ -119,7 +120,6 @@ void iemladspa_config_free(iemladspa_config_t*conf) {
 
 int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   snd_config_iterator_t i, next;
-  snd_config_t *sconf = NULL;
   const char*str=NULL;
   char *controls = NULL;
   const char *configname = NULL;
@@ -137,7 +137,7 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
     if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0 || strcmp(id, "hint") == 0)
       continue;
     if (strcmp(id, "slave") == 0) {
-      sconf = n;
+      CONF->slave = n;
       continue;
     }
     if (strcmp(id, "controls") == 0) {
@@ -201,12 +201,6 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
       continue;
     }
     SNDERR("Unknown field %s", id);
-    return -EINVAL;
-  }
-
-  /* Make sure we have a slave and control devices defined */
-  if (! sconf) {
-    SNDERR("No slave configuration for iemladspa pcm");
     return -EINVAL;
   }
 
