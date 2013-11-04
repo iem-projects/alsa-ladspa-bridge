@@ -139,8 +139,6 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   if (snd_config_get_id(conf, &configname) < 0)
     configname="alsaiemladspa";
 
-
-
   /* Parse configuration options from asoundrc */
   snd_config_for_each(i, next, conf) {
     snd_config_t *n = snd_config_iterator_entry(i);
@@ -219,7 +217,7 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
   }
 
   if(controls) {
-    CONF->controlfile=reassign_string(CONF->controlfile, str);
+    CONF->controlfile=reassign_string(CONF->controlfile, controls);
   } else if (configname) {
     controls=(char*)calloc(strlen(configname)+5, 1);
     if(!controls) {
@@ -227,8 +225,8 @@ int iemladspa_config_init(iemladspa_config_t*CONF, snd_config_t*conf) {
       return -EINVAL;
     }
     sprintf(controls, "%s.bin", configname);
-    CONF->controlfile=reassign_string(CONF->controlfile, str);
-    free(controls);
+    CONF->controlfile=reassign_string(CONF->controlfile, controls);
+    free(controls);controls=NULL;
   }
 
   if(pcm && NULL == CONF->slave) {
