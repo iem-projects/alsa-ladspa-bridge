@@ -9,11 +9,13 @@ CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC -O0 -g
 LD := gcc
 LDFLAGS += -Wall -shared -lasound
 
-SND_PCM_OBJECTS = pcm_iemladspa.o ladspa_utils.o
+HEADERS=iemladspa_configuration.h ladspa_utils.h
+
+SND_PCM_OBJECTS = pcm_iemladspa.o ladspa_utils.o iemladspa_configuration.o
 SND_PCM_LIBS =
 SND_PCM_BIN = libasound_module_pcm_iemladspa.so
 
-SND_CTL_OBJECTS = ctl_iemladspa.o ladspa_utils.o
+SND_CTL_OBJECTS = ctl_iemladspa.o ladspa_utils.o iemladspa_configuration.o
 SND_CTL_LIBS =
 SND_CTL_BIN = libasound_module_ctl_iemladspa.so
 
@@ -38,7 +40,7 @@ $(SND_CTL_BIN): $(SND_CTL_OBJECTS)
 	@echo LD $@
 	$(Q)$(LD) $(LDFLAGS) $(SND_CTL_LIBS) $(SND_CTL_OBJECTS) -o $(SND_CTL_BIN)
 
-%.o: %.c
+%.o: %.c $(HEADERS)
 	@echo GCC $<
 	$(Q)$(CC) -c $(CFLAGS) $(CPPFLAGS) $<
 
