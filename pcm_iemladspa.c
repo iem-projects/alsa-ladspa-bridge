@@ -39,7 +39,7 @@
 #include <alsa/pcm_external.h>
 #include <alsa/control.h>
 #include <linux/soundcard.h>
-#include <ladspa.h>
+#include "iemladspa_configuration.h"
 #include "ladspa_utils.h"
 
 #if 0
@@ -603,13 +603,7 @@ static snd_pcm_extplug_callback_t iemladspa_callback = {
 
 SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 {
-  snd_config_iterator_t i, next;
   snd_pcm_iemladspa_t *iemladspa=NULL;
-  snd_config_t *sconf = NULL;
-  const char *controls = NULL;
-  char *default_controls=NULL;
-  const char *library = "/usr/lib/ladspa/iemladspa.so";
-  const char *module = "iemladspa";
   int err;
   iemladspa_iochannels_t sourcechannels, sinkchannels;
   long inchannels = 2;
@@ -620,102 +614,35 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   unsigned int format = SND_PCM_FORMAT_S16;
 
+  iemladspa_config_t*iconf=iemladspa_config_create(PCM);
+  if(!iconf) {
+    return -EINVAL;
+  }
+  err=iemladspa_config_init(iconf, conf);
+  if(err<0) {
+    iemladspa_config_free(iconf);
+    return -EINVAL;
+  }
+
   if (snd_config_get_id(conf, &configname) < 0)
     configname=NULL;
 
-  /* Parse configuration options from asoundrc */
-  snd_config_for_each(i, next, conf) {
-    snd_config_t *n = snd_config_iterator_entry(i);
-
-    const char *id;
-    if (snd_config_get_id(n, &id) < 0)
-      continue;
-    if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0 || strcmp(id, "hint") == 0)
-      continue;
-    if (strcmp(id, "slave") == 0) {
-      sconf = n;
-      continue;
-    }
-    if (strcmp(id, "controls") == 0) {
-      snd_config_get_string(n, &controls);
-      continue;
-    }
-    if (strcmp(id, "library") == 0) {
-      snd_config_get_string(n, &library);
-      continue;
-    }
-    if (strcmp(id, "module") == 0) {
-      snd_config_get_string(n, &module);
-      continue;
-    }
-    if (strcmp(id, "format") == 0) {
-      const char*fmt=NULL;
-      snd_config_get_string(n, &fmt);
-      format=snd_pcm_format_value(fmt);
-      if(SND_PCM_FORMAT_S16!=format && SND_PCM_FORMAT_FLOAT!=format) {
-        SNDERR("format must be %s or %s", snd_pcm_format_name(SND_PCM_FORMAT_S16), snd_pcm_format_name(SND_PCM_FORMAT_FLOAT));
-        return -EINVAL;
-
-      }
-      continue;
-    }
-    if (strcmp(id, "inchannels") == 0) {
-      snd_config_get_integer(n, &inchannels);
-      if(inchannels < 1) {
-        SNDERR("inchannels < 1");
-        return -EINVAL;
-      }
-      continue;
-    }
-    if (strcmp(id, "outchannels") == 0) {
-      snd_config_get_integer(n, &outchannels);
-      if(outchannels < 1) {
-        SNDERR("outchannels < 1");
-        return -EINVAL;
-      }
-      continue;
-    }
-    if (strcmp(id, "sink") == 0) {
-      snd_config_iterator_t subi, subnext;
-      snd_config_for_each(subi, subnext, n) {
-	snd_config_t *subn = snd_config_iterator_entry(subi);
-	const char *subid;
-	if (snd_config_get_id(subn, &subid) < 0)
-	  continue;
-	printf("%s:config %s\n", id, subid);
-      }
-      continue;
-    }
-    SNDERR("Unknown field %s", id);
-    return -EINVAL;
-  }
   sourcechannels.in = sourcechannels.out = inchannels;
   sinkchannels.in   = sinkchannels.out   = outchannels;
 
-  /* Make sure we have a slave and control devices defined */
-  if (! sconf) {
+  if (! iconf->slave) {
     SNDERR("No slave configuration for iemladspa pcm");
     return -EINVAL;
   }
-
-  if(!controls) {
-    default_controls=(char*)calloc(strlen(configname)+5, 1);
-    if(!default_controls) {
-      SNDERR("unable to allocate memory for '%s.bin'", configname);
-      return -EINVAL;
-    }
-    sprintf(default_controls, "%s.bin", configname);
-    controls=default_controls;
-  }
-
   /* ========= init phase done ============ */
 
   /* Intialize the local object data */
   iemladspa = iemladspa_mergeplugin_findorcreate(configname,
-                                                 library,
-                                                 module,
-                                                 controls,
-                                                 sourcechannels, sinkchannels);
+                                                 iconf->ladspa_library,
+                                                 iconf->ladspa_module,
+                                                 iconf->controlfile,
+                                                 iconf->channels[SND_PCM_STREAM_CAPTURE],
+                                                 iconf->channels[SND_PCM_STREAM_PLAYBACK]);
   if (iemladspa == NULL)
     return -ENOMEM;
 
@@ -740,7 +667,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
   ext->private_data = iemladspa;
 
   /* Create the ALSA External Plugin */
-  err = snd_pcm_extplug_create(ext, name, root, sconf, stream, mode);
+  err = snd_pcm_extplug_create(ext, name, root, iconf->slave, stream, mode);
   if (err < 0) {
     SNDERR("could'nt create extplug '%s'.", name);
     return err;
@@ -748,8 +675,8 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   /* MMAP to the controls file */
   if(!iemladspa->control_data) {
-    iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
-                                                sourcechannels, sinkchannels);
+    iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, iconf->controlfile,
+                                                iconf->channels[SND_PCM_STREAM_CAPTURE], iconf->channels[SND_PCM_STREAM_PLAYBACK]);
     if(iemladspa->control_data == NULL) {
       return -1;
     }
@@ -764,7 +691,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
       unsigned int index=iemladspa->control_data->data[offset_in + j].index;
       if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-        SNDERR("Problem with control file %s.", controls);
+        SNDERR("Problem with control file %s.", iconf->controlfile);
         return -1;
       }
     }
@@ -773,7 +700,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
       if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-        SNDERR("Problem with control file %s.", controls);
+        SNDERR("Problem with control file %s.", iconf->controlfile);
         return -1;
       }
     }
@@ -808,8 +735,7 @@ SND_PCM_PLUGIN_DEFINE_FUNC(iemladspa)
 
   *pcmp = ext->pcm;
 
-  if(default_controls)
-    free(default_controls);
+  iemladspa_config_free(iconf);
 
   return 0;
 }
