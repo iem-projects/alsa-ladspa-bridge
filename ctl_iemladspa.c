@@ -24,7 +24,7 @@
 #include <alsa/asoundlib.h>
 #include <alsa/control_external.h>
 
-#include <ladspa.h>
+#include "iemladspa_configuration.h"
 #include "ladspa_utils.h"
 
 typedef struct snd_ctl_iemladspa_control {
@@ -170,76 +170,18 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   int retval=0;
   /* TODO: Plug all of the memory leaks if these some initialization
      failure */
-  snd_config_iterator_t it, next;
   snd_ctl_iemladspa_t *iemladspa;
-  const char *configname = NULL;
-  const char *controls = NULL;
-  char *default_controls=NULL;
-  const char *library = "/usr/lib/ladspa/iemladspa.so";
-  const char *module = "iemladspa";
   int err, i, index;
 
-  iemladspa_iochannels_t sourcechannels, sinkchannels;
-  long inchannels = 2;
-  long outchannels = 2;
-
-  if (snd_config_get_id(conf, &configname) < 0)
-    configname="alsaiemladspa";
-
-  /* Parse configuration options from asoundrc */
-  snd_config_for_each(it, next, conf) {
-    snd_config_t *n = snd_config_iterator_entry(it);
-    const char *id;
-    if (snd_config_get_id(n, &id) < 0)
-      continue;
-    if (strcmp(id, "comment") == 0 || strcmp(id, "type") == 0)
-      continue;
-    if (strcmp(id, "controls") == 0) {
-      snd_config_get_string(n, &controls);
-      continue;
-    }
-    if (strcmp(id, "library") == 0) {
-      snd_config_get_string(n, &library);
-      continue;
-    }
-    if (strcmp(id, "module") == 0) {
-      snd_config_get_string(n, &module);
-      continue;
-    }
-    if (strcmp(id, "inchannels") == 0) {
-      snd_config_get_integer(n, &inchannels);
-      if(inchannels < 1) {
-        SNDERR("inchannels < 1");
-        retval=-EINVAL; goto cleanup;
-      }
-      continue;
-    }
-    if (strcmp(id, "outchannels") == 0) {
-      snd_config_get_integer(n, &outchannels);
-      if(outchannels < 1) {
-        SNDERR("outchannels < 1");
-        retval=-EINVAL; goto cleanup;
-      }
-      continue;
-    }
-
-    SNDERR("Unknown field %s", id);
-    retval=-EINVAL; goto cleanup;
+  iemladspa_config_t*iconf=iemladspa_config_create(CTL);
+  if(!iconf) {
+    return -EINVAL;
   }
-  sourcechannels.in = sourcechannels.out = inchannels;
-  sinkchannels.in   = sinkchannels.out   = outchannels;
-
-  if(!controls) {
-    default_controls=(char*)calloc(strlen(configname)+5, 1);
-    if(!default_controls) {
-      SNDERR("unable to allocate memory for '%s.bin'", configname);
-      retval=-EINVAL;
-      goto cleanup;
-    }
-    sprintf(default_controls, "%s.bin", configname);
-    controls=default_controls;
+  err=iemladspa_config_init(iconf, conf);
+  if(err<0) {
+    iemladspa_config_free(iconf);
+    return -EINVAL;
   }
-
 
   /* Intialize the local object data */
   iemladspa = calloc(1, sizeof(*iemladspa));
@@ -254,12 +196,13 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   iemladspa->ext.private_data = iemladspa;
 
   /* Open the LADSPA Plugin */
-  iemladspa->library = LADSPAload(library);
+  iemladspa->library = LADSPAload(iconf->ladspa_library);
   if(iemladspa->library == NULL) {
     retval=-1; goto cleanup;
   }
 
-  iemladspa->klass = LADSPAfind(iemladspa->library, library, module);
+  iemladspa->klass = LADSPAfind(iemladspa->library,
+                                iconf->ladspa_library, iconf->ladspa_module);
   if(iemladspa->klass == NULL) {
     retval=-1; goto cleanup;
   }
@@ -279,8 +222,10 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   }
 
   /* MMAP to the controls file */
-  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass, controls,
-                                              sourcechannels, sinkchannels);
+  iemladspa->control_data = LADSPAcontrolMMAP(iemladspa->klass,
+                                              iconf->controlfile,
+                                              iconf->channels[SND_PCM_STREAM_CAPTURE],
+                                              iconf->channels[SND_PCM_STREAM_PLAYBACK]);
   if(iemladspa->control_data == NULL) {
     retval=-1; goto cleanup;
   }
@@ -304,7 +249,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
       index = iemladspa->control_data->data[i].index;
       if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
          (LADSPA_PORT_INPUT | LADSPA_PORT_CONTROL)) {
-	SNDERR("Problem with control file %s, %d.", controls, index);
+	SNDERR("Problem with control file %s, %d.", iconf->controlfile, index);
 	retval=-1; goto cleanup;
       }
       iemladspa->control_info[i].min =
@@ -326,7 +271,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
     unsigned int index=iemladspa->control_data->data[offset_in + i].index;
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_INPUT | LADSPA_PORT_AUDIO)) {
-      SNDERR("Problem with control file %s.", controls);
+      SNDERR("Problem with control file %s.", iconf->controlfile);
       retval=-1; goto cleanup;
     }
   }
@@ -335,7 +280,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
 
     if(index>=iemladspa->klass->PortCount || iemladspa->klass->PortDescriptors[index] !=
        (LADSPA_PORT_OUTPUT | LADSPA_PORT_AUDIO)) {
-      SNDERR("Problem with control file %s.", controls);
+      SNDERR("Problem with control file %s.", iconf->controlfile);
       retval=-1; goto cleanup;
     }
   }
@@ -343,8 +288,7 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
   *handlep = iemladspa->ext.handle;
 
  cleanup:
-  if(default_controls)
-    free(default_controls);
+  iemladspa_config_free(iconf);
   return retval;
 }
 
