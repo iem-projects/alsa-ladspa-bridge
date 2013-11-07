@@ -7,7 +7,7 @@ Q	?= @
 CC 	:= gcc
 CFLAGS += -I. -Wall -funroll-loops -ffast-math -fPIC -DPIC -O0 -g
 LD := gcc
-LDFLAGS += -Wall -shared -lasound
+LDFLAGS += -Wall -shared -lasound -lm
 
 HEADERS=iemladspa_configuration.h iemladspa_utils.h ladspa_utils.h
 
