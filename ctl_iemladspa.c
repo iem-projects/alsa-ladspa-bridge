@@ -27,9 +27,20 @@
 #include "iemladspa_configuration.h"
 #include "ladspa_utils.h"
 
+#include <math.h>
+
+typedef enum {
+  CTL_LINEAR,
+  CTL_LOGARITHMIC,
+  CTL_BOOLEAN,
+} iemladspa_ctl_type_t;
+
 typedef struct snd_ctl_iemladspa_control {
   long min;
   long max;
+  double normalize;
+  iemladspa_ctl_type_t type; /* normal, log, bool */
+  int scale_sr; /* e.g. true if values need to be scaled by samplerate */
   char *name;
 } snd_ctl_iemladspa_control_t;
 
@@ -93,7 +104,12 @@ static snd_ctl_ext_key_t iemladspa_find_elem(snd_ctl_ext_t *ext,
 static int iemladspa_get_attribute(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
                                    int *type, unsigned int *acc, unsigned int *count)
 {
-  *type = SND_CTL_ELEM_TYPE_INTEGER;
+  snd_ctl_iemladspa_t*iemladspa = (snd_ctl_iemladspa_t*)ext->private_data;
+  unsigned int _type= SND_CTL_ELEM_TYPE_INTEGER;
+  if(CTL_BOOLEAN == iemladspa->control_info[key].type)
+    _type = SND_CTL_ELEM_TYPE_BOOLEAN;
+
+  *type = _type;
   *acc = SND_CTL_EXT_ACCESS_READWRITE;
   *count = 1;
   return 0;
@@ -114,14 +130,28 @@ static int iemladspa_read_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
 {
   snd_ctl_iemladspa_t *iemladspa = ext->private_data;
   LADSPA_Data v = iemladspa->control_data->data[key].data;
+  snd_ctl_iemladspa_control_t*ctlinfo=&(iemladspa->control_info[key]);
 
-  if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-    value[0]= v * 100;
-  } else {
-    value[0] = ((v - iemladspa->control_info[key].min)/
-                (iemladspa->control_info[key].max-
-                 iemladspa->control_info[key].min))*100;
+  const long min = ctlinfo->min;
+  const long max = ctlinfo->max;
+  const iemladspa_ctl_type_t type = ctlinfo->type;
+  const double normalize = 1./ctlinfo->normalize;
+
+  switch(type) {
+  case CTL_BOOLEAN:
+    v = (v>0.f);
+    break;
+  case CTL_LOGARITHMIC:
+    v=log(v/min);
+    break;
+  default:
+  case CTL_LINEAR:
+    if (max > min)v = (v - min);
   }
+  v*=normalize;
+
+  /* scale 0..1 to 0..100% */
+  value[0]= v * 100;
 
   return sizeof(long);
 }
@@ -131,17 +161,32 @@ static int iemladspa_write_integer(snd_ctl_ext_t *ext, snd_ctl_ext_key_t key,
                                    long *value)
 {
   snd_ctl_iemladspa_t *iemladspa = ext->private_data;
-  float setting;
+  snd_ctl_iemladspa_control_t*ctlinfo=&(iemladspa->control_info[key]);
 
-  setting = value[0];
-  if (iemladspa->control_info[key].max == iemladspa->control_info[key].min) {
-    iemladspa->control_data->data[key].data = (setting/100);
-  } else {
-    iemladspa->control_data->data[key].data = (setting/100)*
-      (iemladspa->control_info[key].max-
-       iemladspa->control_info[key].min)+
-      iemladspa->control_info[key].min;
+
+  const long min = ctlinfo->min;
+  const long max = ctlinfo->max;
+  const iemladspa_ctl_type_t type = ctlinfo->type;
+  const double normalize = ctlinfo->normalize;
+
+  double v;
+
+  v = value[0] / 100.;
+
+  switch(type) {
+  case CTL_BOOLEAN:
+    v=v>0.f;
+    break;
+  case CTL_LOGARITHMIC:
+    if (max > min)v = min*exp(v*normalize);
+    printf("write(log) %d -> %f\t(%f/%f/%f)\n", (int)value[0], v, (double)min, (double)max, normalize);
+    break;
+  default:
+  case CTL_LINEAR:
+    if (max > min)v = v*normalize+min;
+    break;
   }
+  iemladspa->control_data->data[key].data = v;
 
   return 1;
 }
@@ -253,6 +298,33 @@ SND_CTL_PLUGIN_DEFINE_FUNC(iemladspa)
         iemladspa->klass->PortRangeHints[index].LowerBound;
       iemladspa->control_info[i].max =
         iemladspa->klass->PortRangeHints[index].UpperBound;
+
+      iemladspa->control_info[i].scale_sr = 1;
+
+      iemladspa->control_info[i].type  = CTL_LINEAR;
+      if(LADSPA_IS_HINT_LOGARITHMIC(iemladspa->klass->PortRangeHints[index].HintDescriptor))
+         iemladspa->control_info[i].type  = CTL_LOGARITHMIC;
+      if(LADSPA_IS_HINT_TOGGLED(iemladspa->klass->PortRangeHints[index].HintDescriptor))
+         iemladspa->control_info[i].type  = CTL_BOOLEAN;
+
+      iemladspa->control_info[i].normalize=1.;
+      switch(iemladspa->control_info[i].type) {
+      case CTL_LOGARITHMIC:
+        if(iemladspa->control_info[i].min>0.f) {
+          iemladspa->control_info[i].normalize=
+            log(1.*iemladspa->control_info[i].max / iemladspa->control_info[i].min);
+          if(iemladspa->control_info[i].normalize>0.f)
+            break;
+        }
+        iemladspa->control_info[i].normalize=1.;
+        iemladspa->control_info[i].type=CTL_LINEAR;
+      case CTL_LINEAR:
+        if(iemladspa->control_info[i].max != iemladspa->control_info[i].min)
+          iemladspa->control_info[i].normalize=
+            (iemladspa->control_info[i].max - iemladspa->control_info[i].min);
+        break;
+      default: break;
+      }
 
       iemladspa->control_info[i].name = strdup(iemladspa->klass->PortNames[index]);
       if(iemladspa->control_info[i].name == NULL) {
