@@ -18,7 +18,9 @@ SND_CTL_LIBS =
 SND_CTL_BIN = libasound_module_ctl_iemladspa.so
 
 MULTIARCH:=$(shell gcc --print-multiarch)
-LIBDIR = lib/$(MULTIARCH)
+prefix = /usr/local
+libdir = $(prefix)/lib/$(MULTIARCH)
+pkglibdir= $(libdir)/alsa-lib
 
 .PHONY: all clean dep load_default
 
@@ -48,11 +50,11 @@ clean:
 
 install: all
 	@echo Installing...
-	$(Q)mkdir -p ${DESTDIR}/usr/$(LIBDIR)/alsa-lib/
-	$(Q)install -m 644 $(SND_PCM_BIN) ${DESTDIR}/usr/$(LIBDIR)/alsa-lib/
-	$(Q)install -m 644 $(SND_CTL_BIN) ${DESTDIR}/usr/$(LIBDIR)/alsa-lib/
+	$(Q)mkdir -p ${DESTDIR}$(pkglibdir)/
+	$(Q)install -m 644 $(SND_PCM_BIN) ${DESTDIR}$(pkglibdir)/
+	$(Q)install -m 644 $(SND_CTL_BIN) ${DESTDIR}$(pkglibdir)/
 
 uninstall:
 	@echo Un-installing...
-	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_PCM_BIN)
-	$(Q)rm ${DESTDIR}/usr/lib/alsa-lib/$(SND_CTL_BIN)
+	$(Q)rm ${DESTDIR}$(pkglibdir)/$(SND_PCM_BIN)
+	$(Q)rm ${DESTDIR}$(pkglibdir)/$(SND_CTL_BIN)
